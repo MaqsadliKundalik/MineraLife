@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}Buyurtmalar{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>#orders-mini-map{height:300px;border-radius:.75rem;overflow:hidden}</style>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div>
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Buyurtmalar</h1>
+    <p class="text-gray-600 dark:text-gray-400 mt-1">So‘nggi buyurtmalar va mini xarita</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <a href="{% url 'orders:create' %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+      + Buyurtma qo‘shish
+    </a>
+  </div>
+</div>
+
+<!-- Mini xarita -->
+<div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4 mb-4">
+  <div id="orders-mini-map" class="bg-gray-200 dark:bg-gray-700"></div>
+  <div class="mt-3 text-right">
+    <a href="{% url 'orders:map' %}"
+       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700
+              text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+      🗺️ Buyurtmalarni xaritada ko‘rish
+    </a>
+  </div>
+</div>
+
+{% if orders %}
+  <!-- Ro'yxat -->
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+    {% for o in orders %}
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-4 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between">
+          <div class="text-sm text-gray-500 dark:text-gray-400">{{ o.effective_date|date:"Y-m-d" }}</div>
+          <!-- Status badge -->
+          <span class="px-2 py-1 rounded text-xs
+                       {% if o.status == 'pending' %}bg-yellow-100 text-yellow-800
+                       {% elif o.status == 'completed' %}bg-green-100 text-green-800
+                       {% else %}bg-red-100 text-red-800{% endif %}">
+            {{ o.get_status_display }}
+          </span>
+        </div>
+        <h3 class="mt-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+          {{ o.client.name }}
+        </h3>
+        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+          Miqdor: <strong>{{ o.quantity }}</strong><br>
+          Narx: <strong>{{ o.price }} so'm</strong>
+        </p>
+        {% if o.notes %}
+          <p class="mt-2 text-sm text-gray-500 line-clamp-2">{{ o.notes }}</p>
+        {% endif %}
+      </div>
+      <div class="mt-3 text-right">
+        <a href="{% url 'orders:detail' o.pk %}"
+           class="inline-block px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition text-sm">
+          Ko‘rish
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if page_obj %}
+  <div class="mt-6 flex items-center justify-center gap-2">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}" class="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Oldingi</a>
+    {% else %}
+      <span class="px-3 py-1 rounded-md bg-gray-100/60 dark:bg-gray-700/60 text-gray-400">Oldingi</span>
+    {% endif %}
+    <span class="px-3 py-1 text-sm text-gray-700 dark:text-gray-300">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}" class="px-3 py-1 rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600">Keyingi</a>
+    {% else %}
+      <span class="px-3 py-1 rounded-md bg-gray-100/60 dark:bg-gray-700/60 text-gray-400">Keyingi</span>
+    {% endif %}
+  </div>
+  {% endif %}
+{% else %}
+  <!-- Empty state -->
+  <div class="flex flex-col items-center justify-center py-16">
+    <svg class="w-20 h-20 text-gray-400 dark:text-gray-600 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path d="M9 17v-2h6v2m-7 4h8a2 2 0 002-2v-9a2 2 0 00-2-2h-3l-1-2H9l-1 2H5a2 2 0 00-2 2v9a2 2 0 002 2z"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Hozircha buyurtmalar yo‘q</h2>
+    <p class="text-gray-500 dark:text-gray-400 mt-2 text-center max-w-md">
+      Yangi buyurtma qo‘shib boshlang.
+    </p>
+    <a href="{% url 'orders:create' %}" class="mt-6 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+      + Buyurtma qo‘shish
+    </a>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const points = {{ map_points|safe }}; // so‘nggi 20 ta koordinatali buyurtma
+  const center = [41.311081, 69.240562];
+  const map = L.map('orders-mini-map').setView(center, 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  points.forEach(p => {
+    const m = L.marker([p.lat, p.lon]).addTo(map);
+    m.bindPopup(`<strong>${p.client}</strong><br>${p.status}<br>${p.date}<br>${p.price.toLocaleString()} so'm`);
+  });
+
+  if (points.length) {
+    const group = L.featureGroup(points.map(p => L.marker([p.lat, p.lon])));
+    map.fitBounds(group.getBounds().pad(0.2));
+  }
+</script>
+{% endblock %}

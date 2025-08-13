@@ -23,6 +23,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('products/', include('products.urls'), name='products'),
     path('clients/', include('clients.urls'), name='clients'),
+    path('orders/', include('orders.urls'), name='orders'),
+    path('couriers/', include('couriers.urls'), name='couriers'),
 ]
 
 if settings.DEBUG:

@@ -27,6 +27,7 @@ SECRET_KEY = 'django-insecure-7jpa7hp@yv8krwag6t_f64(4+z&qqsi$h(^+oc)km7*%imqo=#
 DEBUG = True
 
 ALLOWED_HOSTS = []
+LOGIN_URL = '/admin/login/'
 
 
 # Application definition
@@ -40,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     "products",
     "clients",
+    "orders",
+    "couriers",
 ]
 
 MIDDLEWARE = [
