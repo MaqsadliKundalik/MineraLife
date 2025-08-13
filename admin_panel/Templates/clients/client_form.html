@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}{% if client %}Mijozni tahrirlash{% else %}Yangi mijoz qo‘shish{% endif %}{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+  <div class="mb-6 flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        {% if client %}Mijozni tahrirlash{% else %}Yangi mijoz{% endif %}
+      </h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">
+        {% if client %}Mijoz ma’lumotlarini o‘zgartiring{% else %}Mijoz ma’lumotlarini kiriting{% endif %}
+      </p>
+    </div>
+    <a href="{% url 'clients:list' %}"
+       class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+      ← Ro‘yxatga qaytish
+    </a>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 space-y-5">
+    {% csrf_token %}
+
+    <!-- Xatoliklar (non_field_errors) -->
+    {% if form.non_field_errors %}
+      <div class="px-4 py-3 rounded-lg bg-red-100 text-red-800">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <!-- Name -->
+    <div>
+      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Ism <span class="text-red-500">*</span></label>
+      {{ form.name }}
+      {% if form.name.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+    <!-- Phone -->
+    <div>
+      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Telefon</label>
+      {{ form.phone_number }}
+      <p class="mt-1 text-xs text-gray-500">Masalan: +998 90 123 45 67</p>
+      {% if form.phone_number.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
+      {% endif %}
+    </div>
+
+<!-- Geo -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  <div>
+    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Latitude</label>
+    {{ form.latitude }}
+    {% if form.latitude.errors %}
+      <p class="mt-1 text-sm text-red-600">{{ form.latitude.errors.0 }}</p>
+    {% endif %}
+  </div>
+  <div>
+    <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Longitude</label>
+    {{ form.longitude }}
+    {% if form.longitude.errors %}
+      <p class="mt-1 text-sm text-red-600">{{ form.longitude.errors.0 }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Interaktiv xarita + qidiruv -->
+<div class="mt-4 space-y-3">
+  <div class="flex items-center gap-2">
+    <input id="address-input" type="text" placeholder="Manzil qidirish (masalan: Chilonzor, Toshkent)"
+           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800
+                  text-gray-800 dark:text-gray-100 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500">
+    <button id="address-search"
+      type="button"
+      class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+      Qidirish
+    </button>
+  </div>
+  <div id="map" class="bg-gray-200 dark:bg-gray-700"></div>
+  <p class="text-xs text-gray-500 dark:text-gray-400">
+    Xaritada nuqtani bosing — koordinatalar avtomatik to‘ldiriladi.
+  </p>
+  <p id="selected-address" class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+    Tanlangan manzil: <span class="italic text-gray-500">hali tanlanmagan</span>
+  </p>
+
+</div>
+
+
+    <!-- Actions -->
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit"
+        class="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
+        {% if client %}Saqlash{% else %}Saqlash{% endif %}
+      </button>
+
+      <a href="{% url 'clients:list' %}"
+         class="px-5 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+        Bekor qilish
+      </a>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // DOM elementlar
+  const latInput = document.getElementById("id_latitude");
+  const lonInput = document.getElementById("id_longitude");
+  const addressInput = document.getElementById("address-input");
+  const searchBtn = document.getElementById("address-search");
+
+  // Toshkent markazi (Hazrati Imom yaqinlari)
+  const TASHKENT_CENTER = [41.311081, 69.240562];
+  const INITIAL_ZOOM = 12;
+
+  // Xarita
+  const map = L.map('map', {
+    zoomControl: true
+  }).setView(TASHKENT_CENTER, INITIAL_ZOOM);
+
+  // OSM tile layer (bepul)
+  const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  });
+  tiles.addTo(map);
+
+  // Marker (bitta marker bilan ishlaymiz)
+  let marker = null;
+
+  function placeMarker(lat, lon) {
+    const latLng = [lat, lon];
+    if (!marker) {
+      marker = L.marker(latLng, { draggable: true }).addTo(map);
+      marker.on('dragend', (e) => {
+        const { lat, lng } = e.target.getLatLng();
+        setLatLon(lat, lng, false);
+      });
+    } else {
+      marker.setLatLng(latLng);
+    }
+    map.setView(latLng, 15);
+  }
+
+  function setLatLon(lat, lon, addMarker = true) {
+    latInput.value = (typeof lat === 'number' ? lat : parseFloat(lat))?.toFixed(6);
+    lonInput.value = (typeof lon === 'number' ? lon : parseFloat(lon))?.toFixed(6);
+    if (addMarker) placeMarker(parseFloat(latInput.value), parseFloat(lonInput.value));
+  }
+
+  // Xarita click -> koordinatalarni olish
+  map.on('click', function (e) {
+    const { lat, lng } = e.latlng;
+    setLatLon(lat, lng, true);
+  });
+
+  // Agar formda oldindan qiymat bo'lsa — marker qo'yamiz
+  if (latInput.value && lonInput.value) {
+    setLatLon(latInput.value, lonInput.value, true);
+  } else {
+    // Brauzer geolokatsiyasi (ixtiyoriy)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          // Toshkentdan juda uzoq bo'lsa hammasini siljitmaymiz
+          setLatLon(latitude, longitude, true);
+        },
+        () => { /* foydalanuvchi rad etsa — hech narsa qilmaymiz */ },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    }
+  }
+
+  // Qidiruv (Nominatim) — soddalashtirilgan
+  async function geocodeAddress(q) {
+    if (!q) return;
+    // Nominatimdan muloyim foydalaning (debounce/throttle tavsiya)
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&addressdetails=1&limit=1&countrycodes=uz`;
+    const resp = await fetch(url, {
+      headers: { 'Accept-Language': 'uz' }
+    });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    if (data && data.length) {
+      const lat = parseFloat(data[0].lat);
+      const lon = parseFloat(data[0].lon);
+      setLatLon(lat, lon, true);
+    } else {
+      alert("Manzil topilmadi. Iltimos, boshqacha so'z bilan urinib ko'ring.");
+    }
+  }
+
+  searchBtn?.addEventListener('click', () => geocodeAddress(addressInput.value));
+  addressInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      geocodeAddress(addressInput.value);
+    }
+  });
+
+  async function updateAddress(lat, lon) {
+    try {
+        document.getElementById("selected-address").innerHTML =
+            'Tanlangan manzil: <span class="italic text-gray-500">Aniqlanmoqda...</span>';
+
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`;
+        const resp = await fetch(url, { headers: { 'Accept-Language': 'uz' } });
+        const data = await resp.json();
+
+        if (data && data.address) {
+            const addr = data.address;
+            // Qismlarini yig‘amiz (ko‘cha, uy, tuman)
+            const street = addr.road || '';
+            const house = addr.house_number ? `${addr.house_number}` : '';
+            const district = addr.suburb || addr.neighbourhood || '';
+            const city = addr.city || addr.town || addr.village || '';
+            const full = [street, house, district, city].filter(Boolean).join(', ');
+
+            document.getElementById("selected-address").textContent =
+                `Tanlangan manzil: ${full || 'Aniqlanmadi'}`;
+        } else {
+            document.getElementById("selected-address").textContent =
+                "Tanlangan manzil: Aniqlanmadi";
+        }
+    } catch (err) {
+        document.getElementById("selected-address").textContent =
+            "Tanlangan manzil: Aniqlanmadi";
+    }
+}
+
+function setLatLon(lat, lon, addMarker = true) {
+    const fLat = parseFloat(lat);
+    const fLon = parseFloat(lon);
+    if (!isFinite(fLat) || !isFinite(fLon)) return;
+
+    latInput.value = fLat.toFixed(6);
+    lonInput.value = fLon.toFixed(6);
+
+    if (addMarker) placeMarker(fLat, fLon);
+
+    // Manzilni yangilash
+    updateAddress(fLat, fLon);
+}
+
+</script>
+{% endblock %}

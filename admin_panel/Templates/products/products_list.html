@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Mahsulotlar{% endblock %}
+
+{% block content %}
+<div class="mb-6 text-center">
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Mahsulotlar</h1>
+    <p class="text-gray-600 dark:text-gray-400 mt-2">Siz uchun mavjud bo‘lgan barcha mahsulotlar</p>
+</div>
+
+{% if products %}
+<!-- Mahsulotlar grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for product in products %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow hover:shadow-2xl transform hover:-translate-y-1 transition duration-300">
+            <!-- Agar rasm maydoni bo‘lsa -->
+            <div class="h-40 bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover">
+                {% else %}
+                    <svg class="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M3 7h18M3 12h18M3 17h18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                {% endif %}
+            </div>
+
+        <div class="p-5">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 truncate">{{ product.name }}</h2>
+            <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">{{ product.description }}</p>
+            <div class="flex items-center justify-between">
+                <span class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ product.price }} so'm</span>
+                <a href="{% url 'products:detail' product.pk %}" class="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+                    Batafsil
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<!-- Bo'sh holat (YouTube-style) -->
+<div class="flex flex-col items-center justify-center py-20">
+    <svg class="w-24 h-24 text-gray-400 dark:text-gray-600 mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M9 17v-2h6v2m-7 4h8a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-3l-1-2H9l-1 2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2z" 
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Hozircha mahsulotlar mavjud emas</h2>
+    <p class="text-gray-500 dark:text-gray-400 mt-2 text-center max-w-md">
+        Mahsulotlar tez orada qo'shiladi. Shu vaqtgacha mavjud bo'lgan boshqa bo'limlarni ko'rib chiqing.
+    </p>
+    <a href="#" class="mt-6 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+        Bosh sahifaga qaytish
+    </a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}{{ client.name }} - O‘chirish{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+    <h1 class="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Mijozni o‘chirish</h1>
+    <p class="text-gray-700 dark:text-gray-300 mb-6">
+        Rostan ham <strong>{{ client.name }}</strong> ismli mijozni o‘chirmoqchimisiz?
+    </p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'clients:detail' client.pk %}"
+               class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+                Bekor qilish
+            </a>
+            <button type="submit"
+                    class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition">
+                Ha, o‘chirilsin
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
