@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Kuryer Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Statistik blok -->
+    <div class="grid grid-cols-2 gap-4">
+        <div class="bg-green-100 dark:bg-green-800 p-4 rounded-lg text-center shadow">
+            <p class="text-sm text-gray-600 dark:text-gray-300">Naqd tushum</p>
+            <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ cash_total }} so‘m</p>
+        </div>
+        <div class="bg-blue-100 dark:bg-blue-800 p-4 rounded-lg text-center shadow">
+            <p class="text-sm text-gray-600 dark:text-gray-300">Karta tushum</p>
+            <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ card_total }} so‘m</p>
+        </div>
+    </div>
+
+    <!-- Xarita tugmasi -->
+    <div class="flex justify-center">
+        <a href="{% url 'couriers:map' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700">
+            Buyurtmalarni xaritada ko‘rish
+        </a>
+    </div>
+
+    <!-- Buyurtmalar ro'yxati -->
+    {% if orders %}
+        <div class="space-y-4">
+            {% for order in orders %}
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div>
+                    <p class="font-semibold text-gray-900 dark:text-gray-100">
+                    {{ order.client.name }} ({{ order.get_status_display }})
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Miqdor: {{ order.quantity }} | Narx: {{ order.price }} so‘m
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        To‘lov: {{ order.get_payment_method_display }}
+                    </p>
+                </div>
+                <div class="mt-3 sm:mt-0 flex gap-2">
+                    <form method="post" action="{% url 'couriers:order_update' order.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="completed">
+                        <button class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                            ✅ Bajardim
+                        </button>
+                    </form>
+                    <form method="post" action="{% url 'couriers:order_update' order.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="cancelled">
+                        <button class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                            ❌ Bekor qildim
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-gray-500 dark:text-gray-400">Bugun sizga biriktirilgan buyurtmalar yo‘q.</p>
+    {% endif %}
+</div>
+{% endblock %}

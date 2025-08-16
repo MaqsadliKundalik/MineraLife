@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import admin_welcome, dashboard_redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,6 +27,8 @@ urlpatterns = [
     path('orders/', include('orders.urls'), name='orders'),
     path('couriers/', include('couriers.urls'), name='couriers'),
     path('accounts/', include('django.contrib.auth.urls')),  # login/logout/password_*
+    path('dashboard/admin/', admin_welcome, name='admin_welcome'),
+    path('', dashboard_redirect, name='dashboard'),
 ]
 
 if settings.DEBUG:

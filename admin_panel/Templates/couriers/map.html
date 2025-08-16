@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% block title %}Kuryer xaritasi{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<style>
+  #courier-map { height: calc(100vh - 140px); border-radius: .75rem; overflow: hidden; }
+
+  /* Leaflet control ko‘rinishi */
+  .ml-actions{ display:flex; flex-direction:column; gap:.4rem }
+  .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9); box-shadow: 0 10px 30px rgba(0,0,0,.2); }
+  .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
+
+  /* Modal har doim ustida bo‘lsin */
+  #order-modal { position: fixed; inset: 0; z-index: 10050; }
+  #order-modal .modal-backdrop { position: absolute; inset: 0; z-index: 10040; background: rgba(0,0,0,.5); }
+  #order-modal .modal-card { position: relative; z-index: 10060; }
+
+  /* Leaflet popup/control z-indexini biroz pasaytirish */
+  .leaflet-pane.leaflet-popup-pane { z-index: 650; }
+  .leaflet-top, .leaflet-bottom { z-index: 400; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto mb-3">
+  <div class="grid grid-cols-2 gap-3">
+    <div class="bg-green-100 dark:bg-green-800 p-3 rounded-lg text-center shadow">
+      <p class="text-xs text-gray-700 dark:text-gray-200">Naqd tushum (bugun)</p>
+      <p class="text-xl font-bold text-green-700 dark:text-green-300">{{ stats.cash|floatformat:0 }} so‘m</p>
+    </div>
+    <div class="bg-blue-100 dark:bg-blue-800 p-3 rounded-lg text-center shadow">
+      <p class="text-xs text-gray-700 dark:text-gray-200">Karta tushum (bugun)</p>
+      <p class="text-xl font-bold text-blue-700 dark:text-blue-300">{{ stats.card|floatformat:0 }} so‘m</p>
+    </div>
+  </div>
+</div>
+
+<div class="flex items-center justify-between mb-3">
+  <a href="{% url 'couriers:dashboard' %}"
+     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 
+            text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+    ← Orqaga
+  </a>
+  <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Buyurtmalar xaritasi</h1>
+</div>
+
+<div>
+  <div id="courier-map" class="bg-gray-200 dark:bg-gray-700"></div>
+</div>
+
+<!-- MODAL -->
+<div id="order-modal" class="fixed inset-0 hidden">
+  <div class="absolute inset-0 modal-backdrop" onclick="closeOrderModal()"></div>
+
+  <div class="modal-card relative mx-auto mt-10 w-[95vw] max-w-xl bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Buyurtma tafsilotlari</h3>
+      <button class="text-gray-500 hover:text-gray-700 dark:text-gray-300" onclick="closeOrderModal()">✕</button>
+    </div>
+
+    <div class="px-5 py-4 space-y-3 text-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">Mijoz</div>
+          <div id="modal-client" class="font-medium text-gray-900 dark:text-gray-100">—</div>
+        </div>
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">Telefon</div>
+          <div id="modal-phone" class="font-medium text-gray-900 dark:text-gray-100">—</div>
+        </div>
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">Sana</div>
+          <div id="modal-date" class="font-medium text-gray-900 dark:text-gray-100">—</div>
+        </div>
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">Miqdor / Narx</div>
+          <div id="modal-amount" class="font-medium text-gray-900 dark:text-gray-100">—</div>
+        </div>
+        <div>
+          <div class="text-gray-500 dark:text-gray-400">To‘lov</div>
+          <div id="modal-payment" class="font-medium text-gray-900 dark:text-gray-100">—</div>
+        </div>
+        <div class="sm:col-span-2">
+          <div class="text-gray-500 dark:text-gray-400">Manzil</div>
+          <div id="modal-address" class="font-medium text-gray-900 dark:text-gray-100">Yuklanmoqda…</div>
+        </div>
+      </div>
+
+      <!-- Dashboard uslubidagi tugmalar -->
+      <div class="pt-2 flex justify-end gap-2">
+        <button type="button"
+                class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                onclick="submitStatus('completed')">
+          ✅ Bajardim
+        </button>
+        <button type="button"
+                class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                onclick="submitStatus('cancelled')">
+          ❌ Bekor qildim
+        </button>
+      </div>
+
+      <p id="modal-error" class="hidden text-red-600 text-sm mt-2"></p>
+      <input type="hidden" id="modal-order-id" value="">
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // --- Ma'lumotlar ---
+  const points = {{ points|safe }};
+
+  // --- Custom marker ikonkalari (statusga ko‘ra) ---
+  const iconBlue = L.icon({
+    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
+  });
+  const iconGreen = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
+  });
+  const iconRed = new L.Icon({
+    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
+  });
+
+  // --- Leaflet xarita ---
+  const map = L.map('courier-map', { zoomControl: true });
+  const center = [41.311081, 69.240562]; // Toshkent
+  map.setView(center, 11);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  const markers = [];
+  points.forEach(p => {
+    let icon = iconBlue;                          // pending (default)
+    if (p.status_raw === "completed") icon = iconGreen;
+    if (p.status_raw === "cancelled") icon = iconRed;
+
+    const m = L.marker([p.lat, p.lon], {icon}).addTo(map);
+    const html = `
+      <strong>${escapeHtml(p.client)}</strong><br>
+      ${p.status} · ${p.date}<br>
+      ${p.payment} · ${Number(p.price).toLocaleString()} so'm<br>
+      <button class="mt-1 px-2 py-1 rounded bg-indigo-600 text-white"
+              onclick="openOrderModal(${p.id})">Holatini o'zgartirish</button>
+    `;
+    m.bindPopup(html);
+    markers.push(m);
+  });
+
+  function fitAll(){
+    if(markers.length){
+      const g = L.featureGroup(markers);
+      map.fitBounds(g.getBounds().pad(0.15));
+    } else {
+      map.setView(center, 11);
+    }
+  }
+  fitAll();
+
+  // Control: Recenter & Fullscreen
+  const Actions = L.Control.extend({
+    options:{ position:'topright' },
+    onAdd:function(){
+      const div = L.DomUtil.create('div','leaflet-control ml-actions');
+      div.innerHTML = `
+        <button id="ml-fit" class="ml-action-btn">Recenter</button>
+        <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
+      `;
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      return div;
+    }
+  });
+  map.addControl(new Actions());
+  document.addEventListener('click', (e)=>{
+    if(e.target.id === 'ml-fit') fitAll();
+    if(e.target.id === 'ml-fs'){
+      const el = document.getElementById('courier-map');
+      if(!document.fullscreenElement){
+        el.requestFullscreen?.(); e.target.textContent='Exit fullscreen';
+      } else {
+        document.exitFullscreen?.(); e.target.textContent='Fullscreen';
+      }
+      setTimeout(()=>map.invalidateSize(), 200);
+    }
+  });
+  document.addEventListener('fullscreenchange', ()=> setTimeout(()=>map.invalidateSize(), 150));
+
+  // --- Modal mantiqi ---
+  const modal = document.getElementById('order-modal');
+  const modalId = document.getElementById('modal-order-id');
+  const elClient = document.getElementById('modal-client');
+  const elPhone  = document.getElementById('modal-phone');
+  const elDate   = document.getElementById('modal-date');
+  const elAmount = document.getElementById('modal-amount');
+  const elPay    = document.getElementById('modal-payment');
+  const elAddr   = document.getElementById('modal-address');
+  const elErr    = document.getElementById('modal-error');
+
+  function openOrderModal(id){
+    try { map.closePopup(); } catch(e) {} // popup ustida qolmasin
+
+    const p = points.find(x => x.id === id);
+    if(!p) return;
+
+    modalId.value = id;
+    elClient.textContent = p.client;
+    elPhone.textContent  = p.phone || '—';
+    elDate.textContent   = p.date;
+    elAmount.textContent = `${p.quantity} dona · ${Number(p.price).toLocaleString()} so'm`;
+    elPay.textContent    = p.payment;
+
+    // Reverse geocoding (Nominatim)
+    elAddr.textContent = 'Yuklanmoqda…';
+    reverseGeocode(p.lat, p.lon).then(addr=>{
+      elAddr.textContent = addr || `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`;
+    }).catch(()=>{
+      elAddr.textContent = `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`;
+    });
+
+    modal.classList.remove('hidden');
+  }
+
+  function closeOrderModal(){
+    elErr.classList.add('hidden');
+    modal.classList.add('hidden');
+  }
+
+  window.openOrderModal = openOrderModal;
+  window.closeOrderModal = closeOrderModal;
+
+  // --- Reverse geocoding (OSM Nominatim) ---
+  async function reverseGeocode(lat, lon){
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=uz`;
+    const res = await fetch(url);
+    if(!res.ok) throw new Error('geocode-failed');
+    const data = await res.json();
+    return data.display_name || '';
+  }
+
+  // --- CSRF helper ---
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
+  }
+  const csrftoken = getCookie('csrftoken');
+
+  // --- Status yuborish (dashboard uslubida) ---
+  async function submitStatus(newStatus){
+    const id = modalId.value;
+    if(!id) return;
+
+    const updateUrl = "{% url 'couriers:order_update' 0 %}".replace('0', id);
+    try{
+      const resp = await fetch(updateUrl, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': csrftoken, 'Accept': 'text/html' },
+        body: new URLSearchParams({ status: newStatus })
+      });
+      if(!resp.ok) throw new Error('update-failed');
+      location.reload(); // oson yo‘l: ham marker ranglari, ham statistika yangilanadi
+    }catch(err){
+      elErr.textContent = "Xatolik yuz berdi. Qayta urinib ko‘ring.";
+      elErr.classList.remove('hidden');
+    }
+  }
+  window.submitStatus = submitStatus;
+
+  // Xavfsiz HTML uchun
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+</script>
+{% endblock %}

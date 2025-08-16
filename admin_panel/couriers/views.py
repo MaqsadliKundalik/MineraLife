@@ -5,6 +5,117 @@ from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from .forms import CourierUserCreateForm, CourierUserUpdateForm, CourierUserPasswordForm, COURIER_GROUP_NAME
 from admin_panel.mixins import SuperuserRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.utils.timezone import now
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
+from orders.models import Order
+from django.db.models import Sum
+from django.shortcuts import render
+from django.utils.timezone import localdate
+# couriers/views.py
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import datetime
+
+from orders.models import Order
+
+def _safe_parse_date(s: str):
+    """YYYY-MM-DD ni date ga parse qiladi; xato bo‘lsa None qaytaradi."""
+    if not s:
+        return None
+    try:
+        return datetime.strptime(s, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+@login_required
+def courier_dashboard(request):
+    # 1) Har doim lokal “bugun”
+    base_today = timezone.localdate()
+
+    # 2) Ixtiyoriy: GET'dan kelgan sana (mas: ?date=2025-08-16)
+    requested = _safe_parse_date(request.GET.get("date"))
+    today = requested or base_today  # Hech bo‘lmasa base_today
+
+    # 3) Queryset – kuryerning aynan shu kundagi buyurtmalari
+    qs = (Order.objects
+          .select_related("client", "courier")
+          .filter(
+              courier=request.user,
+              effective_date=today
+          )
+          .order_by("-created_at"))
+
+    # 4) Statistika (bugungi)
+    agg = qs.values("payment_method", "status").annotate(total=Sum("price"))
+    cash_total = next((r["total"] for r in agg if r["payment_method"] == "cash" and r["status"] == "completed"), 0) or 0
+    card_total = next((r["total"] for r in agg if r["payment_method"] == "card" and r["status"] == "completed"), 0) or 0
+
+    return render(request, "couriers/dashboard.html", {
+        "orders": qs,
+        "cash_total": cash_total,
+        "card_total": card_total,
+        "today": today,  # date obyekt
+    })
+
+@login_required
+def courier_order_update(request, pk):
+    order = get_object_or_404(Order, pk=pk, courier=request.user)
+
+    if request.method == "POST":
+        new_status = request.POST.get("status")
+        if new_status in ["completed", "cancelled"]:
+            order.status = new_status
+            order.save()
+            messages.success(request, "Buyurtma yangilandi!")
+        return redirect("couriers:dashboard")
+
+    return render(request, "couriers/order_detail.html", {"order": order})
+
+@login_required
+def courier_map(request):
+    today = localdate()
+    qs = (Order.objects
+          .select_related("client", "courier")
+          .filter(
+              courier=request.user,
+              effective_date=today,
+              client__latitude__isnull=False,
+              client__longitude__isnull=False
+          )
+          .order_by("-created_at"))
+
+    points = [{
+        "id": o.id,
+        "client": o.client.name,
+        "phone": o.client.phone_number or "",
+        "lat": o.client.latitude,
+        "lon": o.client.longitude,
+        "status": o.get_status_display(),
+        "status_raw": o.status,  # ('pending'...'completed'...'cancelled')
+        "quantity": o.quantity,
+        "price": float(o.price),
+        "date": o.effective_date.isoformat(),
+        "payment": "💳 Karta" if o.payment_method == "card" else "💵 Naqd",
+        "payment_raw": o.payment_method,  # ('card'|'cash')
+    } for o in qs]
+
+    stats = {
+        "cash": qs.filter(status="completed", payment_method="cash").aggregate(total=Sum("price"))["total"] or 0,
+        "card": qs.filter(status="completed", payment_method="card").aggregate(total=Sum("price"))["total"] or 0,
+    }
+
+    return render(request, "couriers/map.html", {
+        "points": points,
+        "stats": stats,
+        "today": today,
+    })
+
 
 class StaffOnly(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):

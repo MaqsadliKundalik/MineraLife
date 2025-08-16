@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Xush kelibsiz - MineraLife{% endblock %}
+
+{% block content %}
+<div class="flex flex-col items-center justify-center text-center py-20">
+    <div class="bg-blue-100 dark:bg-blue-900 p-6 rounded-full mb-6 shadow-lg">
+        <svg class="w-16 h-16 text-blue-600 dark:text-blue-300" fill="none" stroke="currentColor" stroke-width="2"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8m5-6h4m-4 4h4M4 16h4m-4 4h4" />
+        </svg>
+    </div>
+
+
+    <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        Xush kelibsiz, {{ user.username }}!
+    </h1>
+
+    <p class="text-lg text-gray-600 dark:text-gray-300 max-w-xl mb-8">
+        MineraLife boshqaruv paneliga xush kelibsiz. Bu yerda siz buyurtmalar, mijozlar, mahsulotlar va kuryerlarni samarali boshqarishingiz mumkin.
+    </p>
+
+    <a href="{% url 'orders:list' %}"
+       class="px-8 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 transition transform hover:scale-105">
+        Buyurtmalarga o‘tish
+    </a>
+</div>
+{% endblock %}

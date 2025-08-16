@@ -36,6 +36,12 @@
       <div class="text-sm text-gray-500 dark:text-gray-400">Narx</div>
       <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.price }} so'm</div>
     </div>
+    <div>
+      <div class="text-sm text-gray-500 dark:text-gray-400">To‘lov usuli</div>
+      <div class="font-medium text-gray-900 dark:text-gray-100">
+        {% if order.payment_method == 'card' %}💳 Karta{% else %}💵 Naqd{% endif %}
+      </div>
+    </div>
   </div>
 
   {% if order.notes %}
@@ -51,10 +57,6 @@
   </div>
 
   <div class="mt-3 flex gap-2 justify-end">
-    <a href="{% url 'orders:detail' order.pk %}"
-       class="px-3 py-2 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 text-sm">
-      Ko‘rish
-    </a>
     <a href="{% url 'orders:update' order.pk %}"
        class="px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 text-sm">
       Tahrirlash
