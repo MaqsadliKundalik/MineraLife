@@ -2,58 +2,107 @@
 {% block title %}Buyurtmalar xaritasi{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<style>
-  /* Navbar balandligiga qarab moslang */
-  #orders-full-map{
-    height: calc(100vh - 140px);
-    border-radius: .75rem;
-    overflow: hidden;
-  }
-  /* Control panel ko‘rinishi */
-  .ml-control{
-    font-size: 12px;
-    line-height: 1.2;
-    border-radius: .75rem;
-    box-shadow: 0 10px 30px rgba(0,0,0,.25);
-    backdrop-filter: blur(6px);
-  }
-  .ml-control.light{
-    background: rgba(255,255,255,.9);
-    color:#111827;
-  }
-  .dark .ml-control.light{
-    background: rgba(17,24,39,.88);
-    color:#E5E7EB;
-  }
-  .ml-control .row{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem }
-  .ml-input, .ml-select, .ml-btn{
-    border:1px solid rgba(107,114,128,.5);
-    background: transparent;
-    color: inherit;
-    border-radius:.5rem;
-    padding:.4rem .6rem;
-    width:100%;
-  }
-  .ml-btn.primary{ background:#2563eb; color:#fff; border-color:#2563eb }
-  .ml-chip{ padding:.25rem .5rem; border-radius:.5rem; border:1px solid rgba(107,114,128,.5); cursor:pointer; }
-  .ml-chip.active{ background:#2563eb; color:#fff; border-color:#2563eb }
-  /* Top-right action control tugmalari */
-  .ml-actions{ display:flex; flex-direction:column; gap:.4rem }
-  .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9); }
-  .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
-  /* Katta panellarni mobil ekranlarda bir oz siqamiz */
-  @media (max-width: 768px){
-    .ml-control{ max-width: 92vw }
-    .ml-control .row{ grid-template-columns:1fr }
-  }
-</style>
+  <!-- Yandex Maps API -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <style>
+    /* Navbar balandligiga qarab moslang */
+    #orders-full-map{
+      height: calc(100vh - 140px);
+      border-radius: .75rem;
+      overflow: hidden;
+    }
+    /* Float panellar ko‘rinishi */
+    .ml-control{
+      font-size: 12px;
+      line-height: 1.2;
+      border-radius: .75rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      backdrop-filter: blur(6px);
+      padding: 12px;
+    }
+    .ml-control.light{
+      background: rgba(255,255,255,.9);
+      color:#111827;
+    }
+    .dark .ml-control.light{
+      background: rgba(17,24,39,.88);
+      color:#E5E7EB;
+    }
+    .ml-control .row{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem }
+    .ml-input, .ml-select, .ml-btn{
+      border:1px solid rgba(107,114,128,.5);
+      background: transparent;
+      color: inherit;
+      border-radius:.5rem;
+      padding:.4rem .6rem;
+      width:100%;
+    }
+    .ml-btn.primary{ background:#2563eb; color:#fff; border-color:#2563eb }
+    .ml-chip{ padding:.25rem .5rem; border-radius:.5rem; border:1px solid rgba(107,114,128,.5); cursor:pointer; }
+    .ml-chip.active{ background:#2563eb; color:#fff; border-color:#2563eb }
+
+    .ml-actions{ display:flex; flex-direction:column; gap:.4rem }
+    .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9); }
+    .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
+
+    /* Mobil uchun siqish */
+    @media (max-width: 768px){
+      .ml-control{ max-width: 92vw }
+      .ml-control .row{ grid-template-columns:1fr }
+    }
+  </style>
 {% endblock %}
 
 {% block content %}
-<div>
+<div class="relative">
   <div id="orders-full-map" class="bg-gray-200 dark:bg-gray-700"></div>
+
+  <!-- Filtr panel (chap-ust) -->
+  <div id="filter-panel" class="absolute left-3 top-3 ml-control light">
+    <div style="font-weight:600; margin-bottom:.4rem">Filtrlar</div>
+    <form id="ml-filter-form" method="get" class="space-y-2">
+      <div class="row">
+        <div>
+          <label style="font-size:.75rem">Boshlanish</label>
+          <input class="ml-input" type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+        </div>
+        <div>
+          <label style="font-size:.75rem">Tugash</label>
+          <input class="ml-input" type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.2rem">
+        <button type="button" data-preset="yesterday"
+                class="ml-chip {% if preset == 'yesterday' %}active{% endif %}">Kecha</button>
+        <button type="button" data-preset="today"
+                class="ml-chip {% if preset == 'today' %}active{% endif %}">Bugun</button>
+        <button type="button" data-preset="tomorrow"
+                class="ml-chip {% if preset == 'tomorrow' %}active{% endif %}">Ertaga</button>
+      </div>
+
+      <div>
+        <label style="font-size:.75rem">Kurer(lar)</label>
+        <select class="ml-select" name="courier" multiple>
+          {% for c in couriers %}
+            <option value="{{ c.id }}" {% if c.id in selected_couriers %}selected{% endif %}>{{ c.username }}</option>
+          {% endfor %}
+        </select>
+        <div style="font-size:.7rem; opacity:.8; margin-top:.25rem">Bir nechta tanlash uchun Ctrl/Cmd</div>
+      </div>
+
+      <div style="display:flex; gap:.5rem; margin-top:.3rem">
+        <button class="ml-btn primary" type="submit">Qo‘llash</button>
+        <button class="ml-btn" type="button" id="ml-clear">Tozalash</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Actions (o‘ng-ust) -->
+  <div id="actions-panel" class="absolute right-3 top-3 ml-actions">
+    <button id="ml-fit" class="ml-action-btn">Recenter</button>
+    <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
+  </div>
 </div>
 {% endblock %}
 
@@ -64,211 +113,130 @@
   const initialStart = "{{ start_date|date:'Y-m-d' }}";
   const initialEnd   = "{{ end_date|date:'Y-m-d' }}";
   const preset       = "{{ preset|default:'' }}";
-  const couriers     = {{ couriers|safe }};            // [{id, username}, ...]
-  const selectedCouriers = {{ selected_couriers|safe }}; // [id, id, ...]
+  const selectedCouriers = {{ selected_couriers|safe }};
 
-  // --- Leaflet xarita
   const center = [41.311081, 69.240562]; // Tashkent
-  const map = L.map('orders-full-map', { zoomControl: true }).setView(center, 11);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
 
-  // --- Rangli marker ikonkalari (statusga ko‘ra)
-  const iconBlue = L.icon({
-    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
-  });
-  const iconGreen = new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
-  });
-  const iconRed = new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
-  });
-
-  function statusRawOrGuess(p) {
-    // Backend p.status_raw yuborgan bo‘lsa — ishlatamiz
-    if (p.status_raw) return p.status_raw;
-
-    // Aks holda status matnidan taxmin qilamiz (uzbekcha)
-    const s = (p.status || '').toLowerCase();
-    if (s.includes('bajardi')) return 'completed';
-    if (s.includes('bekor')) return 'cancelled';
-    // default
-    return 'pending';
+  // Status -> preset xaritasi (StretchyIcon: rang + label)
+  function presetForStatus(p){
+    const raw = (p.status_raw || p.status || '').toLowerCase();
+    if (raw.includes('completed') || raw.includes('bajardi')) return 'islands#greenStretchyIcon';
+    if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
+    return 'islands#blueStretchyIcon'; // pending/default
   }
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  const markers = [];
-  points.forEach(p => {
-    const raw = statusRawOrGuess(p);
-    let icon = iconBlue;                      // pending default
-    if (raw === 'completed') icon = iconGreen;
-    if (raw === 'cancelled') icon = iconRed;
+  // --- Yandex init ---
+  ymaps.ready(init);
+  let map;
+  function init(){
+    map = new ymaps.Map("orders-full-map", {
+      center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
+    });
 
-    const m = L.marker([p.lat, p.lon], {icon}).addTo(map);
-    const html = [
-      `<strong>${escapeHtml(p.client)}</strong>`,
-      p.courier ? `Kurer: ${escapeHtml(p.courier)}` : null,
-      `${escapeHtml(p.status)} · ${escapeHtml(p.date)}`,
-      `${Number(p.price).toLocaleString()} so'm`,
-      `<a href="{% url 'orders:detail' 0 %}".replace('0', p.id) class="underline text-blue-600">Ko‘rish</a>`
-    ].filter(Boolean).join('<br>');
-    m.bindPopup(html);
-    markers.push(m);
-  });
+    // Markerlarni chizish
+    renderMarkers();
 
-  function fitAll(){
-    if(markers.length){
-      const g = L.featureGroup(markers);
-      map.fitBounds(g.getBounds().pad(0.15));
-    }else{
-      map.setView(center, 11);
-    }
-  }
-  fitAll();
+    // Recenter tugmasi
+    document.getElementById('ml-fit').addEventListener('click', recenter);
 
-  // === 1) FILTER CONTROL (chap-ust) — Leaflet control sifatida ===
-  const FilterControl = L.Control.extend({
-    options: { position: 'topleft' },
-    onAdd: function(){
-      const div = L.DomUtil.create('div', 'leaflet-control ml-control light');
-      div.style.padding = '12px';
-      div.innerHTML = `
-        <div style="font-weight:600; margin-bottom:.4rem">Filtrlar</div>
-        <form id="ml-filter-form" method="get" class="space-y-2">
-          <div class="row">
-            <div>
-              <label style="font-size:.75rem">Boshlanish</label>
-              <input class="ml-input" type="date" name="start_date" value="${initialStart || ''}">
-            </div>
-            <div>
-              <label style="font-size:.75rem">Tugash</label>
-              <input class="ml-input" type="date" name="end_date" value="${initialEnd || ''}">
-            </div>
-          </div>
+    // Fullscreen tugmasi (native Fullscreen API)
+    const fsBtn = document.getElementById('ml-fs');
+    const mapEl = document.getElementById('orders-full-map');
+    fsBtn.addEventListener('click', async ()=>{
+      if(!document.fullscreenElement){
+        await mapEl.requestFullscreen?.();
+        fsBtn.textContent = 'Exit fullscreen';
+      }else{
+        await document.exitFullscreen?.();
+        fsBtn.textContent = 'Fullscreen';
+      }
+      setTimeout(()=> map.container.fitToViewport(), 200);
+    });
+    document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
 
-          <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-top:.2rem">
-            <button type="button" data-preset="yesterday" class="ml-chip ${preset==='yesterday'?'active':''}">Kecha</button>
-            <button type="button" data-preset="today"     class="ml-chip ${preset==='today'?'active':''}">Bugun</button>
-            <button type="button" data-preset="tomorrow"  class="ml-chip ${preset==='tomorrow'?'active':''}">Ertaga</button>
-          </div>
-
-          <div>
-            <label style="font-size:.75rem">Kurer(lar)</label>
-            <select class="ml-select" name="courier" multiple>
-              ${couriers.map(c => `<option value="${c.id}" ${selectedCouriers.includes(c.id)?'selected':''}>${c.username}</option>`).join('')}
-            </select>
-            <div style="font-size:.7rem; opacity:.8; margin-top:.25rem">Bir nechta tanlash uchun Ctrl/Cmd</div>
-          </div>
-
-          <div style="display:flex; gap:.5rem; margin-top:.3rem">
-            <button class="ml-btn primary" type="submit">Qo‘llash</button>
-            <button class="ml-btn" type="button" id="ml-clear">Tozalash</button>
-          </div>
-        </form>
-      `;
-
-      // Map pan/zoomni bloklamaslik uchun:
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-
-      // Preset tugmalar: start/end'ni tozalab, preset bilan submit
-      div.querySelectorAll('[data-preset]').forEach(btn=>{
-        btn.addEventListener('click', ()=>{
-          const f = div.querySelector('#ml-filter-form');
-          // start/end tozalash
-          f.querySelector('[name=start_date]').value = '';
-          f.querySelector('[name=end_date]').value = '';
-          // URL yasab yuboramiz (GET)
-          const url = new URL(location.href);
-          url.searchParams.set('preset', btn.dataset.preset);
-          url.searchParams.delete('start_date');
-          url.searchParams.delete('end_date');
-          url.searchParams.delete('page');
-          // courier multiple tanlovlarini ham olib o‘tamiz
-          const selected = Array.from(f.querySelector('[name=courier]').selectedOptions).map(o=>o.value);
-          url.searchParams.delete('courier');
-          selected.forEach(id => url.searchParams.append('courier', id));
-          location.href = url.toString();
-        });
-      });
-
-      // Tozalash: bugun
-      div.querySelector('#ml-clear').addEventListener('click', ()=>{
+    // Preset tugmalari
+    document.querySelectorAll('#filter-panel [data-preset]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const f = document.getElementById('ml-filter-form');
+        f.start_date.value = '';
+        f.end_date.value = '';
         const url = new URL(location.href);
-        url.searchParams.set('preset','today');
+        url.searchParams.set('preset', btn.dataset.preset);
         url.searchParams.delete('start_date');
         url.searchParams.delete('end_date');
         url.searchParams.delete('page');
-        url.searchParams.delete('courier');
-        location.href = url.toString();
-      });
-
-      // Oddiy submit (qo‘lda sanalar)
-      div.querySelector('#ml-filter-form').addEventListener('submit', (e)=>{
-        // presetni olib tashlaymiz, sanalar ishlasin
-        const url = new URL(location.href);
-        url.searchParams.delete('preset');
-        url.searchParams.delete('page');
-        const f = e.target;
-        const s = f.start_date.value;
-        const en = f.end_date.value;
-        if(s) url.searchParams.set('start_date', s); else url.searchParams.delete('start_date');
-        if(en) url.searchParams.set('end_date', en); else url.searchParams.delete('end_date');
         // courier multiple
+        const selected = Array.from(f.courier.selectedOptions).map(o=>o.value);
         url.searchParams.delete('courier');
-        Array.from(f.courier.selectedOptions).forEach(o=>url.searchParams.append('courier', o.value));
-        e.preventDefault();
+        selected.forEach(id => url.searchParams.append('courier', id));
         location.href = url.toString();
       });
+    });
 
-      return div;
-    }
-  });
-  map.addControl(new FilterControl({position:'topleft'}));
+    // Tozalash: bugun
+    document.getElementById('ml-clear').addEventListener('click', ()=>{
+      const url = new URL(location.href);
+      url.searchParams.set('preset','today');
+      url.searchParams.delete('start_date');
+      url.searchParams.delete('end_date');
+      url.searchParams.delete('page');
+      url.searchParams.delete('courier');
+      location.href = url.toString();
+    });
 
-  // === 2) ACTIONS CONTROL (o‘ng-ust) ===
-  const Actions = L.Control.extend({
-    options:{ position:'topright' },
-    onAdd:function(){
-      const div = L.DomUtil.create('div','leaflet-control ml-actions');
-      div.innerHTML = `
-        <button id="ml-fit" class="ml-action-btn">Recenter</button>
-        <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
-      `;
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      return div;
-    }
-  });
-  map.addControl(new Actions());
+    // Qo‘lda sanalar submit
+    document.getElementById('ml-filter-form').addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const url = new URL(location.href);
+      url.searchParams.delete('preset');
+      url.searchParams.delete('page');
+      const f = e.target;
+      const s = f.start_date.value;
+      const en = f.end_date.value;
+      if(s) url.searchParams.set('start_date', s); else url.searchParams.delete('start_date');
+      if(en) url.searchParams.set('end_date', en); else url.searchParams.delete('end_date');
+      url.searchParams.delete('courier');
+      Array.from(f.courier.selectedOptions).forEach(o=>url.searchParams.append('courier', o.value));
+      location.href = url.toString();
+    });
+  }
 
-  // Recenter
-  document.getElementById('ml-fit').addEventListener('click', fitAll);
+  function renderMarkers(){
+    // Avvalgi geoObject’larni tozalaymiz
+    map.geoObjects.removeAll();
 
-  // Fullscreen
-  const fsBtn = document.getElementById('ml-fs');
-  const mapEl = document.getElementById('orders-full-map');
-  fsBtn.addEventListener('click', async ()=>{
-    if(!document.fullscreenElement){
-      await mapEl.requestFullscreen?.();
-      fsBtn.textContent = 'Exit fullscreen';
-    }else{
-      await document.exitFullscreen?.();
-      fsBtn.textContent = 'Fullscreen';
-    }
-    setTimeout(()=>map.invalidateSize(), 200);
-  });
-  document.addEventListener('fullscreenchange', ()=> setTimeout(()=>map.invalidateSize(), 150));
+    const collection = new ymaps.GeoObjectCollection();
+    points.forEach(p=>{
+      const preset = presetForStatus(p);
+      const placemark = new ymaps.Placemark([p.lat, p.lon], {
+        // 🔹 Mijoz nomi markerning o‘zida ko‘rinadi:
+        iconContent: esc(p.client),
+        // 🔹 Balloon: tafsilotlar
+        balloonContent: `
+          <strong>Mijoz:</strong> ${esc(p.client)}<br>
+          ${p.courier ? `<strong>Kurer:</strong> ${esc(p.courier)}<br>` : ''}
+          <strong>Status:</strong> ${esc(p.status)}<br>
+          <strong>Sana:</strong> ${esc(p.date)}<br>
+          <strong>Narx:</strong> ${Number(p.price).toLocaleString()} so'm<br>
+          ${p.payment ? `<strong>To‘lov:</strong> ${esc(p.payment)}` : ''}<br>
+          <a href="/orders/${p.id}/" class="underline">Ko‘rish</a>
+        `
+      }, {
+        preset,
+        iconMaxWidth: 240
+      });
+      collection.add(placemark);
+    });
 
-  // Xavfsiz HTML uchun
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    map.geoObjects.add(collection);
+    recenter();
+  }
+
+  function recenter(){
+    const bounds = map.geoObjects.getBounds();
+    if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 20});
+    else map.setCenter(center, 11);
   }
 </script>
 {% endblock %}

@@ -2,25 +2,22 @@
 {% block title %}Kuryer xaritasi{% endblock %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<style>
-  #courier-map { height: calc(100vh - 140px); border-radius: .75rem; overflow: hidden; }
+  <!-- Yandex Maps API -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <style>
+    #courier-map { height: calc(100vh - 140px); border-radius: .75rem; overflow: hidden; }
 
-  /* Leaflet control ko‘rinishi */
-  .ml-actions{ display:flex; flex-direction:column; gap:.4rem }
-  .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9); box-shadow: 0 10px 30px rgba(0,0,0,.2); }
-  .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
+    /* Ustki harakat tugmalari (Recenter, Fullscreen) */
+    .ml-actions{ position:absolute; right:.75rem; top:.75rem; display:flex; flex-direction:column; gap:.4rem; z-index:30; }
+    .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9);
+      box-shadow: 0 10px 30px rgba(0,0,0,.2); font-size: 12px; }
+    .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
 
-  /* Modal har doim ustida bo‘lsin */
-  #order-modal { position: fixed; inset: 0; z-index: 10050; }
-  #order-modal .modal-backdrop { position: absolute; inset: 0; z-index: 10040; background: rgba(0,0,0,.5); }
-  #order-modal .modal-card { position: relative; z-index: 10060; }
-
-  /* Leaflet popup/control z-indexini biroz pasaytirish */
-  .leaflet-pane.leaflet-popup-pane { z-index: 650; }
-  .leaflet-top, .leaflet-bottom { z-index: 400; }
-</style>
+    /* Modal doimo xarita ustida */
+    #order-modal { position: fixed; inset: 0; z-index: 10050; }
+    #order-modal .modal-backdrop { position: absolute; inset: 0; z-index: 10040; background: rgba(0,0,0,.5); }
+    #order-modal .modal-card { position: relative; z-index: 10060; }
+  </style>
 {% endblock %}
 
 {% block content %}
@@ -46,8 +43,14 @@
   <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Buyurtmalar xaritasi</h1>
 </div>
 
-<div>
+<div class="relative">
   <div id="courier-map" class="bg-gray-200 dark:bg-gray-700"></div>
+
+  <!-- Actions (o‘ng-ust) -->
+  <div class="ml-actions">
+    <button id="ml-fit" class="ml-action-btn">Recenter</button>
+    <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
+  </div>
 </div>
 
 <!-- MODAL -->
@@ -113,89 +116,78 @@
 <script>
   // --- Ma'lumotlar ---
   const points = {{ points|safe }};
-
-  // --- Custom marker ikonkalari (statusga ko‘ra) ---
-  const iconBlue = L.icon({
-    iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
-  });
-  const iconGreen = new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
-  });
-  const iconRed = new L.Icon({
-    iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
-    shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41]
-  });
-
-  // --- Leaflet xarita ---
-  const map = L.map('courier-map', { zoomControl: true });
   const center = [41.311081, 69.240562]; // Toshkent
-  map.setView(center, 11);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-
-  const markers = [];
-  points.forEach(p => {
-    let icon = iconBlue;                          // pending (default)
-    if (p.status_raw === "completed") icon = iconGreen;
-    if (p.status_raw === "cancelled") icon = iconRed;
-
-    const m = L.marker([p.lat, p.lon], {icon}).addTo(map);
-    const html = `
-      <strong>${escapeHtml(p.client)}</strong><br>
-      ${p.status} · ${p.date}<br>
-      ${p.payment} · ${Number(p.price).toLocaleString()} so'm<br>
-      <button class="mt-1 px-2 py-1 rounded bg-indigo-600 text-white"
-              onclick="openOrderModal(${p.id})">Holatini o'zgartirish</button>
-    `;
-    m.bindPopup(html);
-    markers.push(m);
-  });
-
-  function fitAll(){
-    if(markers.length){
-      const g = L.featureGroup(markers);
-      map.fitBounds(g.getBounds().pad(0.15));
-    } else {
-      map.setView(center, 11);
-    }
+  // Status -> preset (rang + label ko‘rinadigan marker)
+  function presetForStatus(p){
+    const raw = (p.status_raw || p.status || '').toLowerCase();
+    if (raw.includes('completed') || raw.includes('bajardi')) return 'islands#greenStretchyIcon';
+    if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
+    return 'islands#blueStretchyIcon'; // pending/default
   }
-  fitAll();
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  // Control: Recenter & Fullscreen
-  const Actions = L.Control.extend({
-    options:{ position:'topright' },
-    onAdd:function(){
-      const div = L.DomUtil.create('div','leaflet-control ml-actions');
-      div.innerHTML = `
-        <button id="ml-fit" class="ml-action-btn">Recenter</button>
-        <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
-      `;
-      L.DomEvent.disableClickPropagation(div);
-      L.DomEvent.disableScrollPropagation(div);
-      return div;
-    }
-  });
-  map.addControl(new Actions());
-  document.addEventListener('click', (e)=>{
-    if(e.target.id === 'ml-fit') fitAll();
-    if(e.target.id === 'ml-fs'){
-      const el = document.getElementById('courier-map');
+  // --- Yandex xarita ---
+  ymaps.ready(init);
+  let map, collection;
+
+  function init(){
+    map = new ymaps.Map("courier-map", {
+      center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
+    });
+
+    collection = new ymaps.GeoObjectCollection();
+
+    // Markerlar
+    points.forEach(p => {
+      const placemark = new ymaps.Placemark([p.lat, p.lon], {
+        iconContent: esc(p.client),  // Mijoz nomi markerning o‘zida ko‘rinadi
+        balloonContent: `
+          <strong>Mijoz:</strong> ${esc(p.client)}<br>
+          ${p.phone ? `<strong>Tel:</strong> ${esc(p.phone)}<br>` : ''}
+          <strong>Status:</strong> ${esc(p.status)}<br>
+          <strong>Sana:</strong> ${esc(p.date)}<br>
+          <strong>Miqdor/Narx:</strong> ${p.quantity} · ${Number(p.price).toLocaleString()} so'm<br>
+          <strong>To‘lov:</strong> ${esc(p.payment)}
+          <div style="margin-top:.5rem">
+            <button onclick="openOrderModal(${p.id})" class="px-2 py-1 rounded bg-indigo-600 text-white">Holatini o'zgartirish</button>
+          </div>
+        `
+      }, {
+        preset: presetForStatus(p),
+        iconMaxWidth: 240
+      });
+
+      collection.add(placemark);
+    });
+
+    map.geoObjects.add(collection);
+    recenter();
+
+    // Recenter tugmasi
+    document.getElementById('ml-fit').addEventListener('click', recenter);
+
+    // Fullscreen tugmasi
+    const fsBtn = document.getElementById('ml-fs');
+    const mapEl = document.getElementById('courier-map');
+    fsBtn.addEventListener('click', async ()=>{
       if(!document.fullscreenElement){
-        el.requestFullscreen?.(); e.target.textContent='Exit fullscreen';
+        await mapEl.requestFullscreen?.();
+        fsBtn.textContent = 'Exit fullscreen';
       } else {
-        document.exitFullscreen?.(); e.target.textContent='Fullscreen';
+        await document.exitFullscreen?.();
+        fsBtn.textContent = 'Fullscreen';
       }
-      setTimeout(()=>map.invalidateSize(), 200);
-    }
-  });
-  document.addEventListener('fullscreenchange', ()=> setTimeout(()=>map.invalidateSize(), 150));
+      setTimeout(()=> map.container.fitToViewport(), 200);
+    });
+    document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
+  }
+
+  function recenter(){
+    const bounds = map.geoObjects.getBounds();
+    if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 20});
+    else map.setCenter(center, 11);
+  }
 
   // --- Modal mantiqi ---
   const modal = document.getElementById('order-modal');
@@ -209,8 +201,6 @@
   const elErr    = document.getElementById('modal-error');
 
   function openOrderModal(id){
-    try { map.closePopup(); } catch(e) {} // popup ustida qolmasin
-
     const p = points.find(x => x.id === id);
     if(!p) return;
 
@@ -221,7 +211,7 @@
     elAmount.textContent = `${p.quantity} dona · ${Number(p.price).toLocaleString()} so'm`;
     elPay.textContent    = p.payment;
 
-    // Reverse geocoding (Nominatim)
+    // Reverse geocoding (Nominatim — API keysiz, frontdan)
     elAddr.textContent = 'Yuklanmoqda…';
     reverseGeocode(p.lat, p.lon).then(addr=>{
       elAddr.textContent = addr || `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`;
@@ -270,17 +260,12 @@
         body: new URLSearchParams({ status: newStatus })
       });
       if(!resp.ok) throw new Error('update-failed');
-      location.reload(); // oson yo‘l: ham marker ranglari, ham statistika yangilanadi
+      location.reload(); // tezkor yo‘l: ranglar/statistika yangilanadi
     }catch(err){
       elErr.textContent = "Xatolik yuz berdi. Qayta urinib ko‘ring.";
       elErr.classList.remove('hidden');
     }
   }
   window.submitStatus = submitStatus;
-
-  // Xavfsiz HTML uchun
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  }
 </script>
 {% endblock %}
