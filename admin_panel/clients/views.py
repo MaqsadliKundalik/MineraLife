@@ -5,15 +5,16 @@ from django.views.generic import CreateView, DetailView, DeleteView, UpdateView
 from django.contrib import messages
 from .models import Client
 from .forms import ClientForm
+from admin_panel.mixins import SuperuserRequiredMixin
 
-class ClientListView(ListView):
+class ClientListView(SuperuserRequiredMixin, ListView):
     model = Client
     template_name = 'clients/clients_list.html'
     context_object_name = 'clients'
     paginate_by = 12  # har sahifada nechta yozuv
     ordering = '-created_at'  # xohlasangiz
 
-class ClientCreateView(CreateView):
+class ClientCreateView(SuperuserRequiredMixin, CreateView):
     model = Client
     form_class = ClientForm
     template_name = "clients/client_form.html"
@@ -27,18 +28,18 @@ class ClientCreateView(CreateView):
         messages.error(self.request, "Formada xatolar bor. Iltimos, tekshirib qayta yuboring.")
         return super().form_invalid(form)
 
-class ClientDetailView(DetailView):
+class ClientDetailView(SuperuserRequiredMixin, DetailView):
     model = Client
     template_name = "clients/client_detail.html"
     context_object_name = "client"
 
-class ClientDeleteView(DeleteView):
+class ClientDeleteView(SuperuserRequiredMixin, DeleteView):
     model = Client
     template_name = "clients/client_confirm_delete.html"
     context_object_name = "client"
     success_url = reverse_lazy("clients:list")
 
-class ClientUpdateView(UpdateView):
+class ClientUpdateView(SuperuserRequiredMixin, UpdateView):
     model = Client
     form_class = ClientForm
     template_name = "clients/client_form.html"  # yaratgan formamizni qayta ishlatamiz

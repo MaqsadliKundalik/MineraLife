@@ -27,7 +27,9 @@ SECRET_KEY = 'django-insecure-7jpa7hp@yv8krwag6t_f64(4+z&qqsi$h(^+oc)km7*%imqo=#
 DEBUG = True
 
 ALLOWED_HOSTS = []
-LOGIN_URL = '/admin/login/'
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'               # muvaffaqiyatli kirganda qayerga olib borish
+LOGOUT_REDIRECT_URL = '/accounts/login/'  # chiqgandan keyin login sahifaga qaytarish
 
 
 # Application definition
@@ -43,6 +45,7 @@ INSTALLED_APPS = [
     "clients",
     "orders",
     "couriers",
+    "common"
 ]
 
 MIDDLEWARE = [
@@ -67,6 +70,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.request',
             ],
         },
     },
@@ -110,7 +114,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tashkent'
 
 USE_I18N = True
 

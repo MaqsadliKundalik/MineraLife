@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Buyurtmani o‘chirish{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+  <h1 class="text-2xl font-bold text-red-600 dark:text-red-400 mb-4">Buyurtmani o‘chirish</h1>
+  <p class="text-gray-700 dark:text-gray-300 mb-6">
+    Quyidagi buyurtmani o‘chirmoqchimisiz?
+  </p>
+
+  <div class="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-700">
+    <div class="text-sm text-gray-500 dark:text-gray-300">ID</div>
+    <div class="font-medium text-gray-900 dark:text-gray-100">#{{ order.id }}</div>
+    <div class="mt-2 text-sm text-gray-500 dark:text-gray-300">Mijoz</div>
+    <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.client.name }}</div>
+    <div class="mt-2 text-sm text-gray-500 dark:text-gray-300">Sana</div>
+    <div class="font-medium text-gray-900 dark:text-gray-100">{{ order.effective_date|date:"Y-m-d" }}</div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <div class="flex justify-end gap-3">
+      <a href="{% url 'orders:detail' order.pk %}"
+         class="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
+        Bekor qilish
+      </a>
+      <button type="submit" class="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition">
+        Ha, o‘chirilsin
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

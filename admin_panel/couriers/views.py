@@ -4,6 +4,7 @@ from django.contrib.auth.models import User, Group
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from .forms import CourierUserCreateForm, CourierUserUpdateForm, CourierUserPasswordForm, COURIER_GROUP_NAME
+from admin_panel.mixins import SuperuserRequiredMixin
 
 class StaffOnly(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
@@ -13,20 +14,20 @@ def _courier_qs():
     group, _ = Group.objects.get_or_create(name=COURIER_GROUP_NAME)
     return User.objects.filter(groups=group).order_by("-date_joined")
 
-class CourierListView(StaffOnly, ListView):
+class CourierListView(SuperuserRequiredMixin, ListView):
     template_name = "couriers/courier_list.html"
     context_object_name = "couriers"
     paginate_by = 12
     def get_queryset(self):
         return _courier_qs()
 
-class CourierDetailView(StaffOnly, DetailView):
+class CourierDetailView(SuperuserRequiredMixin, DetailView):
     template_name = "couriers/courier_detail.html"
     context_object_name = "courier"
     def get_object(self, queryset=None):
         return get_object_or_404(User, pk=self.kwargs["pk"], id__in=_courier_qs().values_list("id", flat=True))
 
-class CourierCreateView(StaffOnly, FormView):
+class CourierCreateView(SuperuserRequiredMixin, FormView):
     template_name = "couriers/courier_form.html"
     form_class = CourierUserCreateForm
     success_url = reverse_lazy("couriers:list")
@@ -34,7 +35,7 @@ class CourierCreateView(StaffOnly, FormView):
         form.save()
         return super().form_valid(form)
 
-class CourierUpdateView(StaffOnly, UpdateView):
+class CourierUpdateView(SuperuserRequiredMixin, UpdateView):
     model = User
     form_class = CourierUserUpdateForm
     template_name = "couriers/courier_form.html"
@@ -44,7 +45,7 @@ class CourierUpdateView(StaffOnly, UpdateView):
     def get_success_url(self):
         return reverse_lazy("couriers:detail", kwargs={"pk": self.object.pk})
 
-class CourierPasswordUpdateView(StaffOnly, FormView):
+class CourierPasswordUpdateView(SuperuserRequiredMixin, FormView):
     template_name = "couriers/courier_password.html"
     form_class = CourierUserPasswordForm
     def dispatch(self, request, *args, **kwargs):
@@ -59,7 +60,7 @@ class CourierPasswordUpdateView(StaffOnly, FormView):
         ctx["courier"] = self.courier
         return ctx
 
-class CourierDeleteView(StaffOnly, DeleteView):
+class CourierDeleteView(SuperuserRequiredMixin, DeleteView):
     template_name = "couriers/courier_confirm_delete.html"
     context_object_name = "courier"
     success_url = reverse_lazy("couriers:list")

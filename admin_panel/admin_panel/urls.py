@@ -25,6 +25,7 @@ urlpatterns = [
     path('clients/', include('clients.urls'), name='clients'),
     path('orders/', include('orders.urls'), name='orders'),
     path('couriers/', include('couriers.urls'), name='couriers'),
+    path('accounts/', include('django.contrib.auth.urls')),  # login/logout/password_*
 ]
 
 if settings.DEBUG:
