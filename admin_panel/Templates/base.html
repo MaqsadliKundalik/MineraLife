@@ -40,55 +40,113 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 flex flex-col min-h-screen">
     <!-- Navbar -->
-    <nav class="bg-white dark:bg-gray-800 shadow">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <a href="#" class="flex items-center text-xl font-bold text-blue-600 dark:text-blue-400">
-                        MineraLife
-                    </a>
-                    {% if user.is_authenticated and user.is_superuser %}
-                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
-                        <a href="{% url 'orders:list' %}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-gray-500">
-                            Buyurtmalar
-                        </a>
-                        <a href="{% url 'clients:list' %}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-gray-500">
-                            Mijozlar
-                        </a>
-                        <a href="{% url 'products:list' %}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-gray-500">
-                            Mahsulotlar
-                        </a>
-                        <a href="{% url 'couriers:list' %}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-700 dark:text-gray-300 hover:border-blue-500 hover:text-gray-500">
-                            Kuryerlar
-                        </a>
-                    </div>
-                    {% endif %}
+    <nav class="bg-white dark:bg-gray-800 shadow sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex h-16 items-center justify-between">
+        <!-- Chap: Logo + Desktop menyu -->
+        <div class="flex items-center gap-6">
+            <a href="/" class="flex items-center text-xl font-bold text-blue-600 dark:text-blue-400">
+            MineraLife
+            </a>
 
-                </div>
-                    <div class="flex items-center">
-                    
-
-                    {% if user.is_authenticated %}
-                        <!-- Chiqish POST bilan (xavfsizroq) -->
-                        <form method="post" action="{% url 'logout' %}" class="ml-4">
-                        {% csrf_token %}
-                        <button type="submit"
-                                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                            Chiqish
-                        </button>
-                        </form>
-                    {% else %}
-                        <a href="{% url 'login' %}"
-                        class="ml-4 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        Kirish
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-                
+            {% if user.is_authenticated and user.is_superuser %}
+            <!-- Desktop menyu (sm dan katta) -->
+            <div class="hidden md:flex md:items-center md:space-x-6">
+            <a href="{% url 'orders:list' %}" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                Buyurtmalar
+            </a>
+            <a href="{% url 'clients:list' %}" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                Mijozlar
+            </a>
+            <a href="{% url 'products:list' %}" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                Mahsulotlar
+            </a>
+            <a href="{% url 'couriers:list' %}" class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                Kuryerlar
+            </a>
             </div>
+            {% endif %}
         </div>
+
+        <!-- O'ng: Tema tugmasi + Auth / Profil dropdown + Hamburger -->
+        <div class="flex items-center gap-2">
+
+            {% if user.is_authenticated %}
+            <!-- Desktop: Profil dropdown -->
+            <div class="relative hidden md:block" id="profileDropdown">
+                <button type="button" data-dropdown-trigger
+                class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600"
+                aria-haspopup="true" aria-expanded="false">
+                <span class="hidden sm:inline">{{ user.username }}</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
+                </svg>
+                </button>
+
+                <!-- Dropdown panel -->
+                <div class="absolute right-0 mt-2 w-44 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black/5 hidden" data-dropdown-panel>
+                <div class="py-1">
+                    <a href="{% url 'orders:list' %}" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Bosh sahifa</a>
+                    <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-gray-700">
+                        Chiqish
+                    </button>
+                    </form>
+                </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Desktop: Kirish -->
+            <div class="hidden md:block">
+                <a href="{% url 'login' %}" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                Kirish
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Hamburger (faqat mobil va planshet) -->
+            <button type="button" class="md:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+                    aria-controls="mobileMenu" aria-expanded="false" data-mobile-trigger>
+            <span class="sr-only">Menyuni ochish</span>
+            <!-- Icon: hamburger -->
+            <svg class="h-6 w-6" viewBox="0 0 24 24" stroke="currentColor" fill="none">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"/>
+            </svg>
+            </button>
+        </div>
+        </div>
+    </div>
+
+    <!-- Mobil menyu panel -->
+    <div class="md:hidden border-t border-gray-200 dark:border-gray-700 hidden" id="mobileMenu">
+        <div class="px-4 py-3 space-y-2 bg-white dark:bg-gray-800">
+        {% if user.is_authenticated and user.is_superuser %}
+            <a href="{% url 'orders:list' %}" class="block px-3 py-2 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Buyurtmalar</a>
+            <a href="{% url 'clients:list' %}" class="block px-3 py-2 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Mijozlar</a>
+            <a href="{% url 'products:list' %}" class="block px-3 py-2 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Mahsulotlar</a>
+            <a href="{% url 'couriers:list' %}" class="block px-3 py-2 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">Kuryerlar</a>
+        {% endif %}
+
+        <div class="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
+
+        {% if user.is_authenticated %}
+            <div class="px-1 text-sm text-gray-500 dark:text-gray-400">Kirish: {{ user.username }}</div>
+            <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="w-full mt-1 px-3 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700">
+                Chiqish
+            </button>
+            </form>
+        {% else %}
+            <a href="{% url 'login' %}" class="block px-3 py-2 rounded-lg bg-green-600 text-white text-center hover:bg-green-700">
+            Kirish
+            </a>
+        {% endif %}
+        </div>
+    </div>
     </nav>
+
     {% if messages %}
     <div class="max-w-7xl mx-auto px-4 mt-4 space-y-2">
         {% for message in messages %}
@@ -115,17 +173,63 @@
         </div>
     </footer>
 
-    <script>
-        function toggleTheme() {
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('theme', 'light');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
-            }
+<script>
+  // Mobil menyu toggle
+  (function () {
+    const trigger = document.querySelector('[data-mobile-trigger]');
+    const panel = document.getElementById('mobileMenu');
+
+    if (trigger && panel) {
+      trigger.addEventListener('click', () => {
+        const isOpen = !panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+        trigger.setAttribute('aria-expanded', String(!isOpen));
+      });
+
+      // Esc bosilganda yopish
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !panel.classList.contains('hidden')) {
+          panel.classList.add('hidden');
+          trigger.setAttribute('aria-expanded', 'false');
         }
-    </script>
+      });
+    }
+  })();
+
+  // Profil dropdown (desktop)
+  (function () {
+    const root = document.getElementById('profileDropdown');
+    if (!root) return;
+
+    const btn = root.querySelector('[data-dropdown-trigger]');
+    const menu = root.querySelector('[data-dropdown-panel]');
+
+    const close = () => {
+      if (!menu.classList.contains('hidden')) {
+        menu.classList.add('hidden');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('hidden');
+      const expanded = menu.classList.contains('hidden') ? 'false' : 'true';
+      btn.setAttribute('aria-expanded', expanded);
+    });
+
+    // Tashqariga bosilganda yopish
+    document.addEventListener('click', (e) => {
+      if (!root.contains(e.target)) close();
+    });
+
+    // Esc bosilganda yopish
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') close();
+    });
+  })();
+</script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

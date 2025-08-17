@@ -4,14 +4,16 @@
 {% block extra_head %}
   <!-- Yandex Maps API -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+
   <style>
-    /* Navbar balandligiga qarab moslang */
+    /* Xarita balandligi (navbar + footer’ni hisobga olib) */
     #orders-full-map{
       height: calc(100vh - 140px);
       border-radius: .75rem;
       overflow: hidden;
     }
-    /* Float panellar ko‘rinishi */
+
+    /* Floated panel umumiy ko‘rinishi */
     .ml-control{
       font-size: 12px;
       line-height: 1.2;
@@ -45,10 +47,31 @@
     .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9); }
     .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
 
-    /* Mobil uchun siqish */
+    /* Panel ochib-yopish animatsiyasi */
+    #filter-panel {
+      transform-origin: top left;
+      transition: transform .18s ease, opacity .18s ease;
+    }
+    #filter-panel.is-collapsed {
+      opacity: 0;
+      transform: scale(.96);
+      pointer-events: none;
+    }
+
+    /* Filtr tugmasi (har doim ko‘rinadi) */
+    #filter-toggle {
+      box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    }
+
+    /* Mobil: panel kengligini cheklash, gridni 1 ustun */
     @media (max-width: 768px){
       .ml-control{ max-width: 92vw }
       .ml-control .row{ grid-template-columns:1fr }
+    }
+
+    /* Kattaroq ekranlarda panel eni */
+    @media (min-width: 769px){
+      .ml-control{ max-width: 420px }
     }
   </style>
 {% endblock %}
@@ -57,9 +80,25 @@
 <div class="relative">
   <div id="orders-full-map" class="bg-gray-200 dark:bg-gray-700"></div>
 
-  <!-- Filtr panel (chap-ust) -->
-  <div id="filter-panel" class="absolute left-3 top-3 ml-control light">
-    <div style="font-weight:600; margin-bottom:.4rem">Filtrlar</div>
+  <!-- 🔘 Filtrni ochib/yopish tugmasi (mobil + desktop) -->
+  <button id="filter-toggle"
+          class="absolute left-3 top-3 inline-flex items-center gap-2 px-3 py-2 rounded-full
+                 bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800"
+          aria-controls="filter-panel" aria-expanded="false" type="button">
+    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M12 4v16"/>
+    </svg>
+    <span>Filtr</span>
+  </button>
+
+  <!-- 🔽 Filtr panel (default: yopiq) -->
+  <div id="filter-panel" class="absolute left-3 top-14 ml-control light is-collapsed" role="dialog" aria-label="Filtrlar">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.4rem">
+      <div style="font-weight:600">Filtrlar</div>
+      <!-- Yopish tugmasi -->
+      <button type="button" id="filter-close" class="ml-chip" title="Yopish" style="line-height:1">✕</button>
+    </div>
+
     <form id="ml-filter-form" method="get" class="space-y-2">
       <div class="row">
         <div>
@@ -108,14 +147,9 @@
 
 {% block extra_js %}
 <script>
-  // Serverdan kelgan ma'lumotlar
+  // === Serverdan kelgan ma'lumotlar ===
   const points = {{ points|safe }};
-  const initialStart = "{{ start_date|date:'Y-m-d' }}";
-  const initialEnd   = "{{ end_date|date:'Y-m-d' }}";
-  const preset       = "{{ preset|default:'' }}";
-  const selectedCouriers = {{ selected_couriers|safe }};
-
-  const center = [41.311081, 69.240562]; // Tashkent
+  const center = [41.311081, 69.240562]; // Toshkent
 
   // Status -> preset xaritasi (StretchyIcon: rang + label)
   function presetForStatus(p){
@@ -124,23 +158,22 @@
     if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
     return 'islands#blueStretchyIcon'; // pending/default
   }
-  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&gt;','>':'&lt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  // --- Yandex init ---
-  ymaps.ready(init);
   let map;
+
+  ymaps.ready(init);
   function init(){
     map = new ymaps.Map("orders-full-map", {
       center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
     });
 
-    // Markerlarni chizish
     renderMarkers();
 
     // Recenter tugmasi
     document.getElementById('ml-fit').addEventListener('click', recenter);
 
-    // Fullscreen tugmasi (native Fullscreen API)
+    // Fullscreen (native)
     const fsBtn = document.getElementById('ml-fs');
     const mapEl = document.getElementById('orders-full-map');
     fsBtn.addEventListener('click', async ()=>{
@@ -155,7 +188,7 @@
     });
     document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
 
-    // Preset tugmalari
+    // Preset chip’lari
     document.querySelectorAll('#filter-panel [data-preset]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         const f = document.getElementById('ml-filter-form');
@@ -174,7 +207,7 @@
       });
     });
 
-    // Tozalash: bugun
+    // Tozalash (bugun)
     document.getElementById('ml-clear').addEventListener('click', ()=>{
       const url = new URL(location.href);
       url.searchParams.set('preset','today');
@@ -200,19 +233,19 @@
       Array.from(f.courier.selectedOptions).forEach(o=>url.searchParams.append('courier', o.value));
       location.href = url.toString();
     });
+
+    // Filtr panel toggling (mobil + desktop, default yopiq)
+    setupFilterToggle(map);
   }
 
   function renderMarkers(){
-    // Avvalgi geoObject’larni tozalaymiz
     map.geoObjects.removeAll();
 
     const collection = new ymaps.GeoObjectCollection();
     points.forEach(p=>{
       const preset = presetForStatus(p);
       const placemark = new ymaps.Placemark([p.lat, p.lon], {
-        // 🔹 Mijoz nomi markerning o‘zida ko‘rinadi:
         iconContent: esc(p.client),
-        // 🔹 Balloon: tafsilotlar
         balloonContent: `
           <strong>Mijoz:</strong> ${esc(p.client)}<br>
           ${p.courier ? `<strong>Kurer:</strong> ${esc(p.courier)}<br>` : ''}
@@ -237,6 +270,61 @@
     const bounds = map.geoObjects.getBounds();
     if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 20});
     else map.setCenter(center, 11);
+  }
+
+  // === Filtr panelini toggling (har doim tugma bilan, default: yopiq) ===
+  function setupFilterToggle(mapInstance){
+    const panel  = document.getElementById('filter-panel');
+    const toggle = document.getElementById('filter-toggle');
+    const close  = document.getElementById('filter-close');
+
+    const storageKey = 'ml_map_filter_open';
+
+    function apply(stateOpen){
+      panel.classList.toggle('is-collapsed', !stateOpen);
+      toggle.setAttribute('aria-expanded', String(stateOpen));
+      setTimeout(()=> mapInstance.container.fitToViewport(), 120);
+    }
+
+    // Dastlab: default yopiq (sessionStorage bo'yicha eslash)
+    const saved = sessionStorage.getItem(storageKey);
+    const initialOpen = saved === '1' ? true : false;  // default false
+    apply(initialOpen);
+
+    // Toggle tugmasi
+    toggle.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const isOpen = !panel.classList.contains('is-collapsed');
+      const next = !isOpen;
+      apply(next);
+      sessionStorage.setItem(storageKey, next ? '1' : '0');
+    });
+
+    // ✕ tugmasi
+    close.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      apply(false);
+      sessionStorage.setItem(storageKey, '0');
+    });
+
+    // Tashqariga bosilganda yopish (dropdown xulqi)
+    document.addEventListener('click', (e)=>{
+      const clickInsidePanel = panel.contains(e.target);
+      const clickOnToggle = toggle.contains(e.target);
+      const isOpen = !panel.classList.contains('is-collapsed');
+      if (isOpen && !clickInsidePanel && !clickOnToggle){
+        apply(false);
+        sessionStorage.setItem(storageKey, '0');
+      }
+    });
+
+    // Esc bilan yopish
+    document.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape'){
+        apply(false);
+        sessionStorage.setItem(storageKey, '0');
+      }
+    });
   }
 </script>
 {% endblock %}
