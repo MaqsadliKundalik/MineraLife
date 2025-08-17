@@ -191,14 +191,12 @@
       );
     }
 
-    // Xarita click -> marker + lat/lon + reverse
     map.events.add('click', e=>{
       const coords = e.get('coords'); // [lat, lon]
       setLatLon(coords[0], coords[1], true);
     });
   });
 
-  // Qidiruv (Yandex geocode) – matndan koordinataga
   function geocodeAddress(q){
     if (!q) return;
     ymaps.geocode(q, { results: 1, boundedBy: [[41.0, 68.5],[41.6, 69.6]], strictBounds: false })
