@@ -1,4 +1,5 @@
-/myenv
+/meynv
 /env
 /win_env
-db.sqlite3
+admin_panel/db.sqlite3
+admin_panel/db.sqlite3
