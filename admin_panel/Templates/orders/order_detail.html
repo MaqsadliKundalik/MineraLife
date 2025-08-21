@@ -39,7 +39,7 @@
     <div>
       <div class="text-sm text-gray-500 dark:text-gray-400">To‘lov usuli</div>
       <div class="font-medium text-gray-900 dark:text-gray-100">
-        {% if order.payment_method == 'card' %}💳 Karta{% else %}💵 Naqd{% endif %}
+        {% if order.payment_method == 'cash' %}💵 Naqd{% elif order.payment_method == 'card' %}💳 Karta{% else %}🏦 Perechesleniya{% endif %}
       </div>
     </div>
   </div>

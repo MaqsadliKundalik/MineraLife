@@ -45,7 +45,9 @@ INSTALLED_APPS = [
     "clients",
     "orders",
     "couriers",
-    "common"
+    "common",
+    "hisobotlar",
+    "django.contrib.humanize"
 ]
 
 MIDDLEWARE = [

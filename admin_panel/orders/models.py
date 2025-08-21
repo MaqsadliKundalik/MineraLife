@@ -4,6 +4,7 @@ class Order(models.Model):
     PAYMENT_METHODS = [
         ('card', 'Karta'),
         ('cash', 'Naqd'),
+        ("perechesleniya", "Perechesleniya"),
     ]
 
     client = models.ForeignKey('clients.Client', on_delete=models.CASCADE, related_name='orders')
@@ -20,7 +21,7 @@ class Order(models.Model):
 
     # YANGI:
     payment_method = models.CharField(
-        max_length=10,
+        max_length=20,
         choices=PAYMENT_METHODS,
         default='cash',
         help_text="To'lov usuli: Karta yoki Naqd"

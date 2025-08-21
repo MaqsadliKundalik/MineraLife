@@ -35,14 +35,7 @@ def _safe_parse_date(s: str):
 
 @login_required
 def courier_dashboard(request):
-    # 1) Har doim lokal “bugun”
-    base_today = timezone.localdate()
-
-    # 2) Ixtiyoriy: GET'dan kelgan sana (mas: ?date=2025-08-16)
-    requested = _safe_parse_date(request.GET.get("date"))
-    today = requested or base_today  # Hech bo‘lmasa base_today
-
-    # 3) Queryset – kuryerning aynan shu kundagi buyurtmalari
+    today = localdate()
     qs = (Order.objects
           .select_related("client", "courier")
           .filter(
@@ -51,16 +44,16 @@ def courier_dashboard(request):
           )
           .order_by("-created_at"))
 
-    # 4) Statistika (bugungi)
-    agg = qs.values("payment_method", "status").annotate(total=Sum("price"))
-    cash_total = next((r["total"] for r in agg if r["payment_method"] == "cash" and r["status"] == "completed"), 0) or 0
-    card_total = next((r["total"] for r in agg if r["payment_method"] == "card" and r["status"] == "completed"), 0) or 0
+    cash_total = qs.filter(status="completed", payment_method="cash").aggregate(total=Sum("price"))["total"] or 0
+    card_total = qs.filter(status="completed", payment_method="card").aggregate(total=Sum("price"))["total"] or 0
+    perechesleniya_total = qs.filter(status="completed", payment_method="perechesleniya").aggregate(total=Sum("price"))["total"] or 0   # 🔹 yangi
 
     return render(request, "couriers/dashboard.html", {
         "orders": qs,
         "cash_total": cash_total,
         "card_total": card_total,
-        "today": today,  # date obyekt
+        "perechesleniya_total": perechesleniya_total,   # 🔹 context ga qo‘shdik
+        "today": today,
     })
 
 @login_required
@@ -101,13 +94,14 @@ def courier_map(request):
         "quantity": o.quantity,
         "price": float(o.price),
         "date": o.effective_date.isoformat(),
-        "payment": "💳 Karta" if o.payment_method == "card" else "💵 Naqd",
+        "payment": "💳 Karta" if o.payment_method == "card" else "💵 Naqd" if o.payment_method == "cash" else "🏦 Perechesleniya",
         "payment_raw": o.payment_method,  # ('card'|'cash')
     } for o in qs]
 
     stats = {
         "cash": qs.filter(status="completed", payment_method="cash").aggregate(total=Sum("price"))["total"] or 0,
         "card": qs.filter(status="completed", payment_method="card").aggregate(total=Sum("price"))["total"] or 0,
+        "perechesleniya": qs.filter(status="completed", payment_method="perechesleniya").aggregate(total=Sum("price"))["total"] or 0,  # 🔹 yangi
     }
 
     return render(request, "couriers/map.html", {

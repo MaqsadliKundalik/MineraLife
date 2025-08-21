@@ -162,7 +162,7 @@
             <div>📦 Miqdor: <strong>{{ o.quantity }}</strong></div>
             <div>💰 Narx: <strong>{{ o.price }} so'm</strong></div>
             <div>🚚 Kurer: <strong>{{ o.courier.username|default:"—" }}</strong></div>
-            <div>💳 To‘lov: <strong>{% if o.payment_method == 'card' %}Karta{% else %}Naqd{% endif %}</strong></div>
+            <div>💳 To‘lov: <strong>{% if o.payment_method == 'cash' %}💵 Naqd{% elif o.payment_method == 'card' %}💳 Karta{% else %}🏦 Perechesleniya{% endif %}</strong></div>
           </div>
 
           {% if o.notes %}

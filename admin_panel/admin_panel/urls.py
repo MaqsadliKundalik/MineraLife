@@ -28,6 +28,7 @@ urlpatterns = [
     path('couriers/', include('couriers.urls'), name='couriers'),
     path('accounts/', include('django.contrib.auth.urls')),  # login/logout/password_*
     path('dashboard/admin/', admin_welcome, name='admin_welcome'),
+    path("reports/", include("hisobotlar.urls")),
     path('', dashboard_redirect, name='dashboard'),
 ]
 

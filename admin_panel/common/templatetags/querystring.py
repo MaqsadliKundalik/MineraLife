@@ -15,3 +15,7 @@ def query_transform(context, **kwargs):
         else:
             params[k] = v
     return params.urlencode()
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
