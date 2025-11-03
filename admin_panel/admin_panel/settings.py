@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-7jpa7hp@yv8krwag6t_f64(4+z&qqsi$h(^+oc)km7*%imqo=#
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'               # muvaffaqiyatli kirganda qayerga olib borish
 LOGOUT_REDIRECT_URL = '/accounts/login/'  # chiqgandan keyin login sahifaga qaytarish
