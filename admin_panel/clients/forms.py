@@ -1,30 +1,59 @@
 # clients/forms.py
 from django import forms
-from .models import Client
+from django.forms import inlineformset_factory
+from .models import Client, ClientPhoneNumber
+
+
+def _attrs(**kw):
+    base = {
+        "class": "w-full rounded-lg border border-gray-300 dark:border-gray-600 "
+                 "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 "
+                 "px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+    }
+    base.update(kw)
+    return base
+
+
+class ClientPhoneNumberForm(forms.ModelForm):
+    """Mijoz telefon raqami formasi"""
+    
+    class Meta:
+        model = ClientPhoneNumber
+        fields = ['phone_number', 'description', 'is_primary']
+        widgets = {
+            'phone_number': forms.TextInput(attrs=_attrs(placeholder="+998901234567")),
+            'description': forms.TextInput(attrs=_attrs(placeholder="Kimning raqami?")),
+            'is_primary': forms.CheckboxInput(attrs={'class': 'h-4 w-4 rounded'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['phone_number'].label = "Telefon raqam"
+        self.fields['description'].label = "Izoh"
+        self.fields['is_primary'].label = "Asosiy raqam"
+
+
+# Telefon raqamlar uchun inline formset
+ClientPhoneNumberFormSet = inlineformset_factory(
+    Client, 
+    ClientPhoneNumber,
+    form=ClientPhoneNumberForm,
+    extra=1,  # 1 ta bo'sh form ko'rsatish
+    can_delete=True,  # O'chirish imkoniyati
+    min_num=0,  # Minimal 0 ta raqam - telefon shart emas
+    validate_min=False,  # Min validation o'chirish
+    max_num=10,  # Maksimal 10 ta raqam
+)
 
 class ClientForm(forms.ModelForm):
     class Meta:
         model = Client
-        fields = ["name", "phone_number", "latitude", "longitude"]
+        fields = ["name", "latitude", "longitude", "caption"]
         widgets = {
-            "name": forms.TextInput(attrs={
-                "placeholder": "Ism Familiya",
-                "class": "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            }),
-            "phone_number": forms.TextInput(attrs={
-                "placeholder": "+998 90 123 45 67",
-                "class": "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            }),
-            "latitude": forms.NumberInput(attrs={
-                "step": "0.000001",
-                "placeholder": "41.311081",
-                "class": "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            }),
-            "longitude": forms.NumberInput(attrs={
-                "step": "0.000001",
-                "placeholder": "69.240562",
-                "class": "w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
-            }),
+            "name": forms.TextInput(attrs=_attrs(placeholder="Ism Familiya")),
+            "latitude": forms.NumberInput(attrs=_attrs(step="0.000001", placeholder="41.311081")),
+            "longitude": forms.NumberInput(attrs=_attrs(step="0.000001", placeholder="69.240562")),
+            "caption": forms.Textarea(attrs=_attrs(placeholder="Qo'shimcha ma'lumotlar")),
         }
 
     def clean(self):

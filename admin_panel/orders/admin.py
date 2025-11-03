@@ -1,8 +1,17 @@
 from django.contrib import admin
 from .models import Order
 
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "client", "courier", "effective_date", "status", "payment_method", "price", "created_at")
+    list_display = ("id", "client", "courier", "inquantity", "outquantity", "effective_date", "status", "payment_method", "get_unit_price", "get_total_price_admin", "created_at")
     list_filter = ("status", "payment_method", "effective_date", "courier")
     search_fields = ("client__name", "courier__username", "notes")
+    
+    def get_unit_price(self, obj):
+        return f"{obj.price:,.0f} so'm"
+    get_unit_price.short_description = "Birlik narx"
+    
+    def get_total_price_admin(self, obj):
+        return f"{obj.get_total_price():,.0f} so'm"
+    get_total_price_admin.short_description = "Umumiy narx"

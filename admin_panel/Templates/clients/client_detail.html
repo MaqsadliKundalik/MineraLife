@@ -42,14 +42,26 @@
         <div class="font-medium text-gray-900 dark:text-gray-100">{{ client.name }}</div>
       </div>
       <div>
-        <div class="text-sm text-gray-500 dark:text-gray-400">Telefon</div>
-        {% if client.phone_number %}
-          <a href="tel:{{ client.phone_number }}" class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
-            {{ client.phone_number }}
-          </a>
-        {% else %}
-          <div class="text-gray-400">—</div>
-        {% endif %}
+        <div class="text-sm text-gray-500 dark:text-gray-400">Telefon raqamlar</div>
+        <div class="space-y-1">
+          {% if client.phone_numbers.all %}
+            {% for phone in client.phone_numbers.all %}
+              <div>
+                <a href="tel:{{ phone.phone_number }}" class="font-medium text-blue-600 dark:text-blue-400 hover:underline">
+                  {{ phone.phone_number }}
+                </a>
+                {% if phone.is_primary %}
+                  <span class="ml-1 px-1 bg-blue-100 text-blue-800 text-xs rounded">Asosiy</span>
+                {% endif %}
+                {% if phone.description %}
+                  <span class="ml-1 text-sm text-gray-500">- {{ phone.description }}</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-gray-400">—</div>
+          {% endif %}
+        </div>
       </div>
       <div>
         <div class="text-sm text-gray-500 dark:text-gray-400">Latitude</div>

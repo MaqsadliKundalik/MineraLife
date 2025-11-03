@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Kuryer Dashboard{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Statistik blok -->
+    <div class="grid grid-cols-3 gap-4"> <!-- 🔹 2 emas, 3 ustun -->
+        <div class="bg-green-100 dark:bg-green-800 p-4 rounded-lg text-center shadow">
+            <p class="text-sm text-gray-600 dark:text-gray-300">Naqd tushum</p>
+            <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ cash_total }} so‘m</p>
+        </div>
+        <div class="bg-blue-100 dark:bg-blue-800 p-4 rounded-lg text-center shadow">
+            <p class="text-sm text-gray-600 dark:text-gray-300">Karta tushum</p>
+            <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ card_total }} so‘m</p>
+        </div>
+        <div class="bg-purple-100 dark:bg-purple-800 p-4 rounded-lg text-center shadow">
+            <p class="text-sm text-gray-600 dark:text-gray-300">Perechesleniya tushum</p>
+            <p class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ perechesleniya_total }} so‘m</p>
+        </div>
+    </div>
+
+
+    <!-- Xarita tugmasi -->
+    <div class="flex justify-center">
+        <a href="{% url 'couriers:map' %}" class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700">
+            Buyurtmalarni xaritada ko‘rish
+        </a>
+    </div>
+
+    <!-- Buyurtmalar ro'yxati -->
+    {% if orders %}
+        <div class="space-y-4">
+            {% for order in orders %}
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                <div>
+                    <p class="font-semibold text-gray-900 dark:text-gray-100">
+                    {{ order.client.name }} ({{ order.get_status_display }})
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        Kiruvchi: {{ order.inquantity }} | Chiquvchi: {{ order.outquantity }} | Narx: {{ order.get_price_display }}
+                    </p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        To‘lov: {{ order.get_payment_method_display }}
+                    </p>
+                </div>
+                <div class="mt-3 sm:mt-0 flex gap-2">
+                    <!-- Tahrirlash tugmasi -->
+                    <a href="{% url 'couriers:order_update' order.pk %}" 
+                       class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Tahrirlash
+                    </a>
+                    
+                    <!-- Tez tugmalar - faqat pending buyurtmalar uchun -->
+                    {% if order.status == 'pending' %}
+                        <form method="post" action="{% url 'couriers:order_update' order.pk %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="completed">
+                            <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                    onclick="return confirm('Buyurtma bajarilganini tasdiqlaysizmi?')">
+                                Bajardim
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'couriers:order_update' order.pk %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="cancelled">
+                            <button type="submit" class="px-3 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                    onclick="return confirm('Buyurtmani bekor qilishni tasdiqlaysizmi?')">
+                                Bekor qildim
+                            </button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-center text-gray-500 dark:text-gray-400">Bugun sizga biriktirilgan buyurtmalar yo‘q.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -5,133 +5,111 @@
   <!-- Yandex Maps API -->
   <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
   <style>
-    #courier-map { height: calc(100vh - 140px); border-radius: .75rem; overflow: hidden; }
+    #courier-map { height: calc(100vh - 180px); border-radius: .75rem; overflow: hidden; }
 
-    /* Ustki harakat tugmalari (Recenter, Fullscreen) */
+    /* Ustki harakat tugmalari */
     .ml-actions{ position:absolute; right:.75rem; top:.75rem; display:flex; flex-direction:column; gap:.4rem; z-index:30; }
-    .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9);
-      box-shadow: 0 10px 30px rgba(0,0,0,.2); font-size: 12px; }
-    .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
-
-    /* Modal doimo xarita ustida */
-    #order-modal { position: fixed; inset: 0; z-index: 10050; }
-    #order-modal .modal-backdrop { position: absolute; inset: 0; z-index: 10040; background: rgba(0,0,0,.5); }
-    #order-modal .modal-card { position: relative; z-index: 10060; }
+    .ml-action-btn{ padding:.5rem .75rem; border-radius:.5rem; background: rgba(255,255,255,.95);
+      box-shadow: 0 4px 20px rgba(0,0,0,.15); font-size: 13px; font-weight: 500; }
+    .dark .ml-action-btn{ background: rgba(17,24,39,.9); color:#E5E7EB; }
   </style>
 {% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto mb-3">
-  <div class="grid grid-cols-3 gap-4"> <!-- 🔹 2 emas, 3 ustun -->
-        <div class="bg-green-100 dark:bg-green-800 p-4 rounded-lg text-center shadow">
-            <p class="text-sm text-gray-600 dark:text-gray-300">Naqd tushum</p>
-            <p class="text-2xl font-bold text-green-700 dark:text-green-300">{{ stats.cash|floatformat:0 }} so‘m</p>
-        </div>
-        <div class="bg-blue-100 dark:bg-blue-800 p-4 rounded-lg text-center shadow">
-            <p class="text-sm text-gray-600 dark:text-gray-300">Karta tushum</p>
-            <p class="text-2xl font-bold text-blue-700 dark:text-blue-300">{{ stats.card|floatformat:0 }} so‘m</p>
-        </div>
-        <div class="bg-purple-100 dark:bg-purple-800 p-4 rounded-lg text-center shadow">
-            <p class="text-sm text-gray-600 dark:text-gray-300">Perechesleniya tushum</p>
-            <p class="text-2xl font-bold text-purple-700 dark:text-purple-300">{{ stats.perechesleniya|floatformat:0 }} so‘m</p>
-        </div>
+<div class="max-w-6xl mx-auto space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Buyurtmalar Xaritasi</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">Bugungi buyurtmalarning joylashuvi</p>
     </div>
-</div>
+    <a href="{% url 'couriers:dashboard' %}"
+       class="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-600 dark:bg-gray-700 
+              text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      Dashboard
+    </a>
+  </div>
 
-<div class="flex items-center justify-between mb-3">
-  <a href="{% url 'couriers:dashboard' %}"
-     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 
-            text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-    ← Orqaga
-  </a>
-  <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">Buyurtmalar xaritasi</h1>
-</div>
+  <!-- Statistika -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-lg text-white shadow">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm">Naqd tushum</p>
+          <p class="text-xl font-bold">{{ stats.cash|floatformat:0 }} so'm</p>
+        </div>
+        <div class="text-2xl">💵</div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-lg text-white shadow">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm">Karta tushum</p>
+          <p class="text-xl font-bold">{{ stats.card|floatformat:0 }} so'm</p>
+        </div>
+        <div class="text-2xl">💳</div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-lg text-white shadow">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm">Perechesleniya</p>
+          <p class="text-xl font-bold">{{ stats.perechesleniya|floatformat:0 }} so'm</p>
+        </div>
+        <div class="text-2xl">🏦</div>
+      </div>
+    </div>
+  </div>
 
-<div class="relative">
-  <div id="courier-map" class="bg-gray-200 dark:bg-gray-700"></div>
-
-  <!-- Actions (o‘ng-ust) -->
-  <div class="ml-actions">
-    <button id="ml-fit" class="ml-action-btn">Recenter</button>
-    <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
+  <!-- Xarita -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+    <div class="relative">
+      <div id="courier-map"></div>
+      
+      <!-- Xarita boshqaruv tugmalari -->
+      <div class="ml-actions">
+        <button id="ml-fit" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          Moslashtirish
+        </button>
+        
+        <button id="ml-fs" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          To'liq ekran
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- MODAL -->
-<div id="order-modal" class="fixed inset-0 hidden">
-  <div class="absolute inset-0 modal-backdrop" onclick="closeOrderModal()"></div>
-
-  <div class="modal-card relative mx-auto mt-10 w-[95vw] max-w-xl bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Buyurtma tafsilotlari</h3>
-      <button class="text-gray-500 hover:text-gray-700 dark:text-gray-300" onclick="closeOrderModal()">✕</button>
-    </div>
-
-    <div class="px-5 py-4 space-y-3 text-sm">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <div class="text-gray-500 dark:text-gray-400">Mijoz</div>
-          <div id="modal-client" class="font-medium text-gray-900 dark:text-gray-100">—</div>
-        </div>
-        <div>
-          <div class="text-gray-500 dark:text-gray-400">Telefon</div>
-          <div id="modal-phone" class="font-medium text-gray-900 dark:text-gray-100">—</div>
-        </div>
-        <div>
-          <div class="text-gray-500 dark:text-gray-400">Sana</div>
-          <div id="modal-date" class="font-medium text-gray-900 dark:text-gray-100">—</div>
-        </div>
-        <div>
-          <div class="text-gray-500 dark:text-gray-400">Miqdor / Narx</div>
-          <div id="modal-amount" class="font-medium text-gray-900 dark:text-gray-100">—</div>
-        </div>
-        <div>
-          <div class="text-gray-500 dark:text-gray-400">To‘lov</div>
-          <div id="modal-payment" class="font-medium text-gray-900 dark:text-gray-100">—</div>
-        </div>
-        <div class="sm:col-span-2">
-          <div class="text-gray-500 dark:text-gray-400">Manzil</div>
-          <div id="modal-address" class="font-medium text-gray-900 dark:text-gray-100">Yuklanmoqda…</div>
-        </div>
-      </div>
-
-      <!-- Dashboard uslubidagi tugmalar -->
-      <div class="pt-2 flex justify-end gap-2">
-        <button type="button"
-                class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                onclick="submitStatus('completed')">
-          ✅ Bajardim
-        </button>
-        <button type="button"
-                class="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                onclick="submitStatus('cancelled')">
-          ❌ Bekor qildim
-        </button>
-      </div>
-
-      <p id="modal-error" class="hidden text-red-600 text-sm mt-2"></p>
-      <input type="hidden" id="modal-order-id" value="">
-    </div>
-  </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
 <script>
-  // --- Ma'lumotlar ---
-  const points = {{ points|safe }};
-  const center = [41.311081, 69.240562]; // Toshkent
+  // Data
+  const points = JSON.parse('{{ points|escapejs }}');
+  const center = points.length ? [points.reduce((s,p) => s + p.lat, 0) / points.length, 
+                                  points.reduce((s,p) => s + p.lon, 0) / points.length] : [41.2995, 69.2401];
 
-  // Status -> preset (rang + label ko‘rinadigan marker)
   function presetForStatus(p){
-    const raw = (p.status_raw || p.status || '').toLowerCase();
-    if (raw.includes('completed') || raw.includes('bajardi')) return 'islands#greenStretchyIcon';
+    const raw = (p.status||'').toLowerCase();
+    if (raw.includes('completed') || raw.includes('bajari')) return 'islands#greenStretchyIcon';
     if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
-    return 'islands#blueStretchyIcon'; // pending/default
+    return 'islands#blueStretchyIcon';
   }
+  
   function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-  // --- Yandex xarita ---
+  // To'g'ridan-to'g'ri tahrirlash sahifasiga o'tish
+  function goToEdit(orderId) {
+    window.location.href = `/couriers/order/${orderId}/update/`;
+  }
+
+  // Yandex xarita
   ymaps.ready(init);
   let map, collection;
 
@@ -140,26 +118,36 @@
       center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
     });
 
+    // Mobil UX: scroll zoom ni o'chirish
+    map.behaviors.disable('scrollZoom');
+
     collection = new ymaps.GeoObjectCollection();
 
     // Markerlar
     points.forEach(p => {
+      // Mijoz nomining qisqa versiyasi
+      const shortName = p.client.split(' ')[0]; // Faqat birinchi so'z
+      
       const placemark = new ymaps.Placemark([p.lat, p.lon], {
-        iconContent: esc(p.client),  // Mijoz nomi markerning o‘zida ko‘rinadi
+        iconContent: esc(shortName),
         balloonContent: `
-          <strong>Mijoz:</strong> ${esc(p.client)}<br>
-          ${p.phone ? `<strong>Tel:</strong> ${esc(p.phone)}<br>` : ''}
-          <strong>Status:</strong> ${esc(p.status)}<br>
-          <strong>Sana:</strong> ${esc(p.date)}<br>
-          <strong>Miqdor/Narx:</strong> ${p.quantity} · ${Number(p.price).toLocaleString()} so'm<br>
-          <strong>To‘lov:</strong> ${esc(p.payment)}
-          <div style="margin-top:.5rem">
-            <button onclick="openOrderModal(${p.id})" class="px-2 py-1 rounded bg-indigo-600 text-white">Holatini o'zgartirish</button>
+          <div style="max-width: 250px;">
+            <strong>📋 ${esc(p.client)}</strong><br>
+            ${p.phone ? `📞 ${esc(p.phone)}<br>` : ''}
+            📅 ${esc(p.date)}<br>
+            💰 ${p.inquantity} kiruvchi, ${p.outquantity} chiquvchi<br>
+            💳 ${esc(p.payment)}<br>
+            <div style="margin-top: 8px;">
+              <button onclick="goToEdit(${p.id})" 
+                      style="padding: 6px 12px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                📝 Tahrirlash
+              </button>
+            </div>
           </div>
         `
       }, {
         preset: presetForStatus(p),
-        iconMaxWidth: 240
+        iconMaxWidth: 200
       });
 
       collection.add(placemark);
@@ -168,19 +156,18 @@
     map.geoObjects.add(collection);
     recenter();
 
-    // Recenter tugmasi
+    // Tugmalar
     document.getElementById('ml-fit').addEventListener('click', recenter);
 
-    // Fullscreen tugmasi
     const fsBtn = document.getElementById('ml-fs');
     const mapEl = document.getElementById('courier-map');
     fsBtn.addEventListener('click', async ()=>{
       if(!document.fullscreenElement){
         await mapEl.requestFullscreen?.();
-        fsBtn.textContent = 'Exit fullscreen';
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Chiqish';
       } else {
         await document.exitFullscreen?.();
-        fsBtn.textContent = 'Fullscreen';
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>To\'liq ekran';
       }
       setTimeout(()=> map.container.fitToViewport(), 200);
     });
@@ -189,87 +176,8 @@
 
   function recenter(){
     const bounds = map.geoObjects.getBounds();
-    if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 20});
+    if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 30});
     else map.setCenter(center, 11);
   }
-
-  // --- Modal mantiqi ---
-  const modal = document.getElementById('order-modal');
-  const modalId = document.getElementById('modal-order-id');
-  const elClient = document.getElementById('modal-client');
-  const elPhone  = document.getElementById('modal-phone');
-  const elDate   = document.getElementById('modal-date');
-  const elAmount = document.getElementById('modal-amount');
-  const elPay    = document.getElementById('modal-payment');
-  const elAddr   = document.getElementById('modal-address');
-  const elErr    = document.getElementById('modal-error');
-
-  function openOrderModal(id){
-    const p = points.find(x => x.id === id);
-    if(!p) return;
-
-    modalId.value = id;
-    elClient.textContent = p.client;
-    elPhone.textContent  = p.phone || '—';
-    elDate.textContent   = p.date;
-    elAmount.textContent = `${p.quantity} dona · ${Number(p.price).toLocaleString()} so'm`;
-    elPay.textContent    = p.payment;
-
-    // Reverse geocoding (Nominatim — API keysiz, frontdan)
-    elAddr.textContent = 'Yuklanmoqda…';
-    reverseGeocode(p.lat, p.lon).then(addr=>{
-      elAddr.textContent = addr || `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`;
-    }).catch(()=>{
-      elAddr.textContent = `${p.lat.toFixed(6)}, ${p.lon.toFixed(6)}`;
-    });
-
-    modal.classList.remove('hidden');
-  }
-
-  function closeOrderModal(){
-    elErr.classList.add('hidden');
-    modal.classList.add('hidden');
-  }
-
-  window.openOrderModal = openOrderModal;
-  window.closeOrderModal = closeOrderModal;
-
-  // --- Reverse geocoding (OSM Nominatim) ---
-  async function reverseGeocode(lat, lon){
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=uz`;
-    const res = await fetch(url);
-    if(!res.ok) throw new Error('geocode-failed');
-    const data = await res.json();
-    return data.display_name || '';
-  }
-
-  // --- CSRF helper ---
-  function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return decodeURIComponent(parts.pop().split(';').shift());
-  }
-  const csrftoken = getCookie('csrftoken');
-
-  // --- Status yuborish (dashboard uslubida) ---
-  async function submitStatus(newStatus){
-    const id = modalId.value;
-    if(!id) return;
-
-    const updateUrl = "{% url 'couriers:order_update' 0 %}".replace('0', id);
-    try{
-      const resp = await fetch(updateUrl, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': csrftoken, 'Accept': 'text/html' },
-        body: new URLSearchParams({ status: newStatus })
-      });
-      if(!resp.ok) throw new Error('update-failed');
-      location.reload(); // tezkor yo‘l: ranglar/statistika yangilanadi
-    }catch(err){
-      elErr.textContent = "Xatolik yuz berdi. Qayta urinib ko‘ring.";
-      elErr.classList.remove('hidden');
-    }
-  }
-  window.submitStatus = submitStatus;
 </script>
 {% endblock %}

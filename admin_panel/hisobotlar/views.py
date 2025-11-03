@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.utils.timezone import now
 from datetime import timedelta, date
 from orders.models import Order
@@ -33,16 +33,16 @@ def reports_view(request):
         status="completed"  # faqat tugagan buyurtmalar
     )
 
-    # To‘lovlar bo‘yicha hisoblash
-    cash_total = qs.filter(payment_method="cash").aggregate(total=Sum("price"))["total"] or 0
-    card_total = qs.filter(payment_method="card").aggregate(total=Sum("price"))["total"] or 0
-    pereches_total = qs.filter(payment_method="perechesleniya").aggregate(total=Sum("price"))["total"] or 0
+    # To'lovlar bo'yicha hisoblash
+    cash_total = qs.filter(payment_method="cash").aggregate(total=Sum(F("price") * F("outquantity")))["total"] or 0
+    card_total = qs.filter(payment_method="card").aggregate(total=Sum(F("price") * F("outquantity")))["total"] or 0
+    pereches_total = qs.filter(payment_method="perechesleniya").aggregate(total=Sum(F("price") * F("outquantity")))["total"] or 0
     total = cash_total + card_total + pereches_total
 
-    # Mijozlar bo‘yicha guruhlash
+    # Mijozlar bo'yicha guruhlash
     clients_summary = (
         qs.values("client__id", "client__name")
-        .annotate(total=Sum("price"))
+        .annotate(total=Sum(F("price") * F("outquantity")))
         .order_by("-total")
     )
 

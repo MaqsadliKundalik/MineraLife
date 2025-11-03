@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Kuryer xaritasi{% endblock %}
+
+{% block extra_head %}
+  <!-- Yandex Maps API -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <style>
+    #courier-map { height: calc(100vh - 180px); border-radius: .75rem; overflow: hidden; }
+
+    /* Ustki harakat tugmalari */
+    .ml-actions{ position:absolute; right:.75rem; top:.75rem; display:flex; flex-direction:column; gap:.4rem; z-index:30; }
+    .ml-action-btn{ padding:.5rem .75rem; border-radius:.5rem; background: rgba(255,255,255,.95);
+      box-shadow: 0 4px 20px rgba(0,0,0,.15); font-size: 13px; font-weight: 500; }
+    .dark .ml-action-btn{ background: rgba(17,24,39,.9); color:#E5E7EB; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Buyurtmalar Xaritasi</h1>
+      <p class="text-gray-600 dark:text-gray-400 mt-1">Bugungi buyurtmalarning joylashuvi</p>
+    </div>
+    <a href="{% url 'couriers:dashboard' %}"
+       class="mt-4 sm:mt-0 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-600 dark:bg-gray-700 
+              text-white hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      Dashboard
+    </a>
+  </div>
+
+  <!-- Statistika -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-lg text-white shadow">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-green-100 text-sm">Naqd tushum</p>
+          <p class="text-xl font-bold">{{ stats.cash|floatformat:0 }} so'm</p>
+        </div>
+        <div class="text-2xl">💵</div>
+      </div>
+    </div>
+    
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-lg text-white shadow">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-blue-100 text-sm">Karta tushum</p>
+          <p class="text-xl font-bold">{{ stats.card|floatformat:0 }} so'm</p>
+        </div>
+        <div class="text-2xl">💳</div>
+      </div>
+    </div>
+    
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-lg text-white shadow">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-purple-100 text-sm">Perechesleniya</p>
+          <p class="text-xl font-bold">{{ stats.perechesleniya|floatformat:0 }} so'm</p>
+        </div>
+        <div class="text-2xl">🏦</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Xarita -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+    <div class="relative">
+      <div id="courier-map"></div>
+      
+      <!-- Xarita boshqaruv tugmalari -->
+      <div class="ml-actions">
+        <button id="ml-fit" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          Moslashtirish
+        </button>
+        
+        <button id="ml-fs" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          To'liq ekran
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Data
+  const points = {{ points|safe }};
+  const center = points.length ? [points.reduce((s,p) => s + p.lat, 0) / points.length, 
+                                  points.reduce((s,p) => s + p.lon, 0) / points.length] : [41.2995, 69.2401];
+
+  function presetForStatus(p){
+    const raw = (p.status||'').toLowerCase();
+    if (raw.includes('completed') || raw.includes('bajari')) return 'islands#greenStretchyIcon';
+    if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
+    return 'islands#blueStretchyIcon';
+  }
+  
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // To'g'ridan-to'g'ri tahrirlash sahifasiga o'tish
+  function goToEdit(orderId) {
+    window.location.href = `/couriers/order/${orderId}/update/`;
+  }
+
+  // Yandex xarita
+  ymaps.ready(init);
+  let map, collection;
+
+  function init(){
+    map = new ymaps.Map("courier-map", {
+      center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
+    });
+
+    // Mobil UX: scroll zoom ni o'chirish
+    map.behaviors.disable('scrollZoom');
+
+    collection = new ymaps.GeoObjectCollection();
+
+    // Markerlar
+    points.forEach(p => {
+      const placemark = new ymaps.Placemark([p.lat, p.lon], {
+        iconContent: esc(p.client),
+        balloonContent: `
+          <div style="max-width: 250px;">
+            <strong>📋 ${esc(p.client)}</strong><br>
+            ${p.phone ? `📞 ${esc(p.phone)}<br>` : ''}
+            📅 ${esc(p.date)}<br>
+            💰 ${p.inquantity} kiruvchi, ${p.outquantity} chiquvchi<br>
+            💳 ${esc(p.payment)}<br>
+            <div style="margin-top: 8px;">
+              <button onclick="goToEdit(${p.id})" 
+                      style="padding: 6px 12px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                📝 Tahrirlash
+              </button>
+            </div>
+          </div>
+        `
+      }, {
+        preset: presetForStatus(p),
+        iconMaxWidth: 200
+      });
+
+      collection.add(placemark);
+    });
+
+    map.geoObjects.add(collection);
+    recenter();
+
+    // Tugmalar
+    document.getElementById('ml-fit').addEventListener('click', recenter);
+
+    const fsBtn = document.getElementById('ml-fs');
+    const mapEl = document.getElementById('courier-map');
+    fsBtn.addEventListener('click', async ()=>{
+      if(!document.fullscreenElement){
+        await mapEl.requestFullscreen?.();
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Chiqish';
+      } else {
+        await document.exitFullscreen?.();
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>To\'liq ekran';
+      }
+      setTimeout(()=> map.container.fitToViewport(), 200);
+    });
+    document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
+  }
+
+  function recenter(){
+    const bounds = map.geoObjects.getBounds();
+    if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 30});
+    else map.setCenter(center, 11);
+  }
+</script>
+{% endblock %}

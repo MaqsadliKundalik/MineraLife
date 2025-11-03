@@ -133,7 +133,7 @@
     <a href="{% url 'orders:map' %}?{% query_transform %}"
        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
               bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-600 transition">
-      🗺️ Buyurtmalarni xaritada ko‘rish
+      Buyurtmalarni xaritada ko'rish
     </a>
   </div>
 </div>
@@ -159,10 +159,19 @@
           </h3>
 
           <div class="mt-1 text-sm text-gray-600 dark:text-gray-300 space-y-0.5">
-            <div>📦 Miqdor: <strong>{{ o.quantity }}</strong></div>
-            <div>💰 Narx: <strong>{{ o.price }} so'm</strong></div>
-            <div>🚚 Kurer: <strong>{{ o.courier.username|default:"—" }}</strong></div>
-            <div>💳 To‘lov: <strong>{% if o.payment_method == 'cash' %}💵 Naqd{% elif o.payment_method == 'card' %}💳 Karta{% else %}🏦 Perechesleniya{% endif %}</strong></div>
+            <div>Kiruvchi: <strong>{{ o.inquantity }}</strong> | Chiquvchi: <strong>{{ o.outquantity }}</strong></div>
+            <div>Narx: <strong>{{ o.get_price_display }}</strong></div>
+            <div>Kurer: <strong>{{ o.courier.username|default:"—" }}</strong></div>
+            <div>To'lov: <strong>{% if o.payment_method == 'cash' %}Naqd{% elif o.payment_method == 'card' %}Karta{% else %}Perechesleniya{% endif %}</strong></div>
+            {% if o.client.phone_numbers.all %}
+              <div>Telefon: 
+                {% for phone in o.client.phone_numbers.all %}
+                  <span class="font-mono">{{ phone.phone_number }}</span>{% if phone.is_primary %} (Asosiy){% endif %}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+              </div>
+            {% else %}
+              <div>Telefon: <span class="text-gray-500">yo'q</span></div>
+            {% endif %}
           </div>
 
           {% if o.notes %}

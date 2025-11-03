@@ -1,17 +1,129 @@
 from django import forms
 from django.contrib.auth.models import User, Group
 from django.core.exceptions import ValidationError
+from orders.models import Order
 
 COURIER_GROUP_NAME = "couriers"
 
 def _tw(**kw):
     base = {
-        "class": "w-full rounded-lg border border-gray-300 dark:border-gray-600 "
+        "class": "w-full rounded-lg border-2 border-gray-300 dark:border-gray-600 "
                  "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 "
-                 "px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
+                 "px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 "
+                 "transition-colors duration-200 placeholder-gray-400 dark:placeholder-gray-500"
     }
     base.update(kw)
     return base
+
+
+class CourierQuickCompleteForm(forms.ModelForm):
+    """Tez bajarish formasi - kiruvchi, chiquvchi miqdorlar va izoh"""
+    
+    class Meta:
+        model = Order
+        fields = ["inquantity", "outquantity", "notes"]
+        widgets = {
+            "inquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Kiruvchi miqdor")),
+            "outquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Chiquvchi miqdor", **{"data-price": "true"})),
+            "notes": forms.Textarea(attrs=_tw(rows=2, placeholder="Qo'shimcha izohlar (ixtiyoriy)...")),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.fields['inquantity'].label = "Kiruvchi miqdor"
+        self.fields['outquantity'].label = "Chiquvchi miqdor"
+        self.fields['notes'].label = "Izohlar"
+        
+        self.fields['inquantity'].help_text = "Mijozga yetkazilgan mahsulot miqdori"
+        self.fields['outquantity'].help_text = "Mijozdan olingan mahsulot miqdori"
+        self.fields['notes'].help_text = "Buyurtma haqida qo'shimcha ma'lumot"
+        
+        # Required qilish - kamida bittasi bo'lishi kerak
+        self.fields['outquantity'].required = True
+    
+    def clean(self):
+        """Miqdor validatsiyasi"""
+        cleaned_data = super().clean()
+        inquantity = cleaned_data.get('inquantity', 0) or 0
+        outquantity = cleaned_data.get('outquantity', 0) or 0
+        
+        # Hech bo'lmaganda bittasi 0 dan katta bo'lishi kerak
+        if inquantity == 0 and outquantity == 0:
+            raise ValidationError(
+                "Hech bo'lmaganda kiruvchi yoki chiquvchi miqdor 0 dan katta bo'lishi kerak"
+            )
+            
+        # Miqdorlar manfiy bo'lmasligi kerak
+        if inquantity < 0:
+            raise ValidationError("Kiruvchi miqdor manfiy bo'lmasligi kerak")
+        if outquantity < 0:
+            raise ValidationError("Chiquvchi miqdor manfiy bo'lmasligi kerak")
+            
+        return cleaned_data
+
+
+class CourierOrderUpdateForm(forms.ModelForm):
+    """Kurer uchun buyurtma tahrirlash formasi - holat, to'lov, miqdor"""
+    
+    class Meta:
+        model = Order
+        fields = ["inquantity", "outquantity", "status", "payment_method", "notes"]
+        widgets = {
+            "inquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Kiruvchi miqdor")),
+            "outquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Chiquvchi miqdor")),
+            "status": forms.Select(attrs=_tw()),
+            "payment_method": forms.Select(attrs=_tw()),
+            "notes": forms.Textarea(attrs=_tw(rows=3, placeholder="Qo'shimcha izohlar...")),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Kurer faqat ma'lum holatlarni o'zgartira olishi mumkin
+        self.fields['status'].choices = [
+            ('pending', 'Kutilmoqda'),
+            ('completed', 'Bajardi'),
+            ('cancelled', 'Bekor qilingan'),
+        ]
+        
+        # To'lov usullari
+        self.fields['payment_method'].choices = Order.PAYMENT_METHODS
+        
+        # Field labellarini o'zbek tilida
+        self.fields['inquantity'].label = "Kiruvchi miqdor"
+        self.fields['outquantity'].label = "Chiquvchi miqdor"
+        self.fields['status'].label = "Buyurtma holati"
+        self.fields['payment_method'].label = "To'lov usuli"
+        self.fields['notes'].label = "Izohlar"
+        
+        # Help textlar
+        self.fields['inquantity'].help_text = "Mijozga yetkazilgan mahsulot miqdori"
+        self.fields['outquantity'].help_text = "Mijozdan olingan mahsulot miqdori"
+        self.fields['status'].help_text = "Buyurtma holatini tanlang"
+        self.fields['payment_method'].help_text = "Mijoz qanday to'lov qildi?"
+        self.fields['notes'].help_text = "Qo'shimcha ma'lumotlar (ixtiyoriy)"
+    
+    def clean(self):
+        """Miqdor validatsiyasi"""
+        cleaned_data = super().clean()
+        inquantity = cleaned_data.get('inquantity', 0)
+        outquantity = cleaned_data.get('outquantity', 0)
+        
+        # Hech bo'lmaganda bittasi 0 dan katta bo'lishi kerak
+        if inquantity == 0 and outquantity == 0:
+            raise ValidationError(
+                "Hech bo'lmaganda kiruvchi yoki chiquvchi miqdor 0 dan katta bo'lishi kerak"
+            )
+            
+        # Miqdorlar manfiy bo'lmasligi kerak
+        if inquantity < 0:
+            raise ValidationError("Kiruvchi miqdor manfiy bo'lmasligi kerak")
+        if outquantity < 0:
+            raise ValidationError("Chiquvchi miqdor manfiy bo'lmasligi kerak")
+            
+        return cleaned_data
+
 
 class CourierUserCreateForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs=_tw(placeholder="damas1")))

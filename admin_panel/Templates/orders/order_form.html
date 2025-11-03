@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}{% if order %}Buyurtmani tahrirlash{% else %}Buyurtma qo‘shish{% endif %}{% endblock %}
+{% block title %}{% if order %}Buyurtmani tahrirlash{% else %}Buyurtma qo'shish{% endif %}{% endblock %}
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
   <div class="mb-6 flex items-center justify-between">
     <div>
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        {% if order %}Buyurtmani tahrirlash{% else %}Buyurtma qo‘shish{% endif %}
+        {% if order %}Buyurtmani tahrirlash{% else %}Buyurtma qo'shish{% endif %}
       </h1>
       <p class="text-gray-600 dark:text-gray-400 mt-1">
-        {% if order %}Ma’lumotlarni yangilang{% else %}Mijoz va buyurtma ma’lumotlarini kiriting{% endif %}
+        {% if order %}Ma'lumotlarni yangilang{% else %}Mijoz va buyurtma ma'lumotlarini kiriting{% endif %}
       </p>
     </div>
     <a href="{% if order %}{% url 'orders:detail' order.pk %}{% else %}{% url 'orders:list' %}{% endif %}"
@@ -21,51 +21,114 @@
   <form method="post" class="bg-white dark:bg-gray-800 rounded-xl shadow p-6 space-y-5">
     {% csrf_token %}
 
+    <!-- Form xatoliklari -->
+    {% if form.non_field_errors %}
+      <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <strong>Xatolar:</strong>
+        <ul class="mt-2">
+          {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
     <div>
       <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Mijoz</label>
       {{ form.client }}
+      {% if form.client.errors %}
+        {% for error in form.client.errors %}
+          <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+        {% endfor %}
+      {% endif %}
     </div>
 
     <div>
       <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Kurer</label>
       {{ form.courier }}
+      {% if form.courier.errors %}
+        {% for error in form.courier.errors %}
+          <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+        {% endfor %}
+      {% endif %}
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
-        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Miqdor</label>
-        {{ form.quantity }}
+        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Kiruvchi miqdor</label>
+        {{ form.inquantity }}
+        {% if form.inquantity.errors %}
+          {% for error in form.inquantity.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Narx (so‘m)</label>
+        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Chiquvchi miqdor</label>
+        {{ form.outquantity }}
+        {% if form.outquantity.errors %}
+          {% for error in form.outquantity.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Narx</label>
         {{ form.price }}
+        {% if form.price.errors %}
+          {% for error in form.price.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
       </div>
+      <div>
+        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Amal qilish sanasi</label>
+        {{ form.effective_date }}
+        {% if form.effective_date.errors %}
+          {% for error in form.effective_date.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Holat</label>
         {{ form.status }}
-      </div>
-    </div>
-
-    <!-- Sana + To'lov usuli yonma-yon -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div>
-        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Amalga oshish sanasi</label>
-        {{ form.effective_date }}
+        {% if form.status.errors %}
+          {% for error in form.status.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
       </div>
       <div>
-        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">To‘lov usuli</label>
+        <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">To'lov usuli</label>
         {{ form.payment_method }}
+        {% if form.payment_method.errors %}
+          {% for error in form.payment_method.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
       </div>
     </div>
 
     <div>
-      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Izoh</label>
+      <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Izohlar</label>
       {{ form.notes }}
+      {% if form.notes.errors %}
+        {% for error in form.notes.errors %}
+          <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+        {% endfor %}
+      {% endif %}
     </div>
 
-    <div class="pt-2 flex items-center gap-3">
+    <div class="flex items-center gap-3 pt-2">
       <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">
-        {% if order %}Saqlash{% else %}Saqlash{% endif %}
+        {% if order %}Yangilash{% else %}Saqlash{% endif %}
       </button>
       <a href="{% if order %}{% url 'orders:detail' order.pk %}{% else %}{% url 'orders:list' %}{% endif %}"
          class="px-5 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 hover:bg-gray-300 dark:hover:bg-gray-600 transition">

@@ -89,6 +89,7 @@ class OrderListView(SuperuserRequiredMixin, ListView):
     def get_queryset(self):
         qs = (Order.objects
               .select_related("client")
+              .prefetch_related("client__phone_numbers")
               .order_by("-created_at"))
 
         start, end, _ = self._get_date_range()
@@ -124,7 +125,7 @@ class OrderListView(SuperuserRequiredMixin, ListView):
                 "lat": o.client.latitude,
                 "lon": o.client.longitude,
                 "status": o.get_status_display(),
-                "price": float(o.price),
+                "price": float(o.get_total_price()),
                 "date": o.effective_date.isoformat(),
             }
             for o in map_qs
@@ -250,12 +251,18 @@ class OrderDetailView(SuperuserRequiredMixin, DetailView):
     model = Order
     template_name = "orders/order_detail.html"
     context_object_name = "order"
+    
+    def get_queryset(self):
+        return Order.objects.select_related("client").prefetch_related("client__phone_numbers")
 
 class OrderUpdateView(SuperuserRequiredMixin, UpdateView):
     model = Order
     form_class = OrderForm
     template_name = "orders/order_form.html"
     context_object_name = "order"
+    
+    def get_queryset(self):
+        return Order.objects.select_related("client").prefetch_related("client__phone_numbers")
 
     def get_success_url(self):
         # Yangilangan buyurtmaning detail sahifasiga qaytamiz
