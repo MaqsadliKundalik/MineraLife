@@ -8,6 +8,16 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ("status", "payment_method", "effective_date", "courier")
     search_fields = ("client__name", "courier__username", "notes")
     
+    # Yangi buyurtma qo'shishda courier so'ralmasin
+    exclude = []
+    
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        # Yangi buyurtma qo'shishda courier maydonini ixtiyoriy qilish
+        if 'courier' in form.base_fields:
+            form.base_fields['courier'].required = False
+        return form
+    
     def get_unit_price(self, obj):
         return f"{obj.price:,.0f} so'm"
     get_unit_price.short_description = "Birlik narx"

@@ -17,6 +17,22 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
+# Load environment variables from a local .env file if present (simple loader)
+ENV_PATH = BASE_DIR / '.env'
+if ENV_PATH.exists():
+    try:
+        for _line in ENV_PATH.read_text(encoding='utf-8').splitlines():
+            line = _line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            k, v = line.split('=', 1)
+            k = k.strip()
+            v = v.strip().strip('"').strip("'")
+            os.environ.setdefault(k, v)
+    except Exception:
+        # Ignore .env parse issues silently to avoid breaking settings
+        pass
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -135,3 +151,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# External API keys
+# Provide via environment variable in production
+YANDEX_MAPS_API_KEY = os.environ.get('YANDEX_MAPS_API_KEY', '')

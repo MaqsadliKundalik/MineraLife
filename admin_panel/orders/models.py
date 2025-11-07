@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.validators import RegexValidator
+from django.utils import timezone
 
 
 class Order(models.Model):
@@ -19,7 +20,7 @@ class Order(models.Model):
         ('completed', 'Bajardi'),
         ('cancelled', 'Bekor qilingan'),
     ], default='pending')
-    effective_date = models.DateField()
+    effective_date = models.DateField(default=timezone.now)
     notes = models.TextField(blank=True, null=True)
 
     # YANGI:

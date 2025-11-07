@@ -49,6 +49,10 @@ class OrderForm(forms.ModelForm):
             groups__name='couriers'
         ).order_by('username')
         
+        # Default sana - bugun
+        if not self.instance.pk:  # Yangi buyurtma bo'lsa
+            self.fields['effective_date'].initial = timezone.localdate()
+        
         # Placeholder va help textlar
         self.fields['effective_date'].help_text = "Buyurtma bajarilish sanasi"
         self.fields['inquantity'].help_text = "Kiruvchi mahsulot miqdori"
@@ -125,3 +129,7 @@ class SimpleOrderForm(forms.ModelForm):
             is_active=True,
             groups__name='couriers'
         ).order_by('username')
+        
+        # Default sana - bugun
+        if not self.instance.pk:  # Yangi buyurtma bo'lsa
+            self.fields['effective_date'].initial = timezone.localdate()

@@ -2,8 +2,10 @@
 {% block title %}Buyurtmalar xaritasi{% endblock %}
 
 {% block extra_head %}
-  <!-- Yandex Maps API -->
-  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <!-- Yandex Maps API (API key required) -->
+  {% if yandex_maps_api_key %}
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key }}&lang=ru_RU" type="text/javascript"></script>
+  {% endif %}
 
   <style>
     /* Xarita balandligi (navbar + footer’ni hisobga olib) */
@@ -43,9 +45,7 @@
     .ml-chip{ padding:.25rem .5rem; border-radius:.5rem; border:1px solid rgba(107,114,128,.5); cursor:pointer; }
     .ml-chip.active{ background:#2563eb; color:#fff; border-color:#2563eb }
 
-    .ml-actions{ display:flex; flex-direction:column; gap:.4rem }
-    .ml-action-btn{ padding:.35rem .6rem; border-radius:.5rem; background: rgba(255,255,255,.9); }
-    .dark .ml-action-btn{ background: rgba(17,24,39,.88); color:#E5E7EB; }
+  /* (Removed) actions panel styles */
 
     /* Panel ochib-yopish animatsiyasi */
     #filter-panel {
@@ -73,12 +73,63 @@
     @media (min-width: 769px){
       .ml-control{ max-width: 420px }
     }
+
+    /* (Removed) Custom global search bar styles */
   </style>
 {% endblock %}
 
 {% block content %}
 <div class="relative">
   <div id="orders-full-map" class="bg-gray-200 dark:bg-gray-700"></div>
+
+  {% if not yandex_maps_api_key %}
+  <div class="absolute inset-0 grid place-items-center p-6">
+    <div class="max-w-md w-full rounded-xl bg-white/90 dark:bg-gray-800/90 shadow-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
+      <div class="text-lg font-semibold mb-2">Yandex Maps API kaliti kerak</div>
+      <div class="text-sm opacity-80 mb-4">Xaritani ko‘rsatish uchun Yandex Maps API kalitini sozlang. Sozlangandan so‘ng sahifani yangilang.</div>
+      <div class="text-xs text-gray-500">ENV: YANDEX_MAPS_API_KEY</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Kuryer biriktirish modal -->
+  <div id="assignCourierModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          Kuryer biriktirish
+        </h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Mijoz: <span id="modalClientName" class="font-medium"></span>
+        </p>
+      </div>
+      
+      <div class="px-6 py-4">
+        <label for="courierSelect" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Kuryerni tanlang
+        </label>
+        <select id="courierSelect" 
+                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500">
+          <option value="">-- Kuryerni olib tashlash --</option>
+        </select>
+        
+        <div id="assignError" class="hidden mt-3 p-2 bg-red-50 dark:bg-red-900 text-red-600 dark:text-red-200 text-sm rounded"></div>
+      </div>
+      
+      <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+        <button type="button" 
+                onclick="assignCourier()"
+                class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+          💾 Saqlash
+        </button>
+        <button type="button" 
+                onclick="closeAssignModal()"
+                class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+          ❌ Bekor qilish
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- 🔘 Filtrni ochib/yopish tugmasi (mobil + desktop) -->
   <button id="filter-toggle"
@@ -137,22 +188,30 @@
     </form>
   </div>
 
-  <!-- Actions (o‘ng-ust) -->
-  <div id="actions-panel" class="absolute right-3 top-3 ml-actions">
-    <button id="ml-fit" class="ml-action-btn">Recenter</button>
-    <button id="ml-fs"  class="ml-action-btn">Fullscreen</button>
-  </div>
+  
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+  // Early guard: if API key is missing, don't run map code
+  const YM_API_KEY = '{{ yandex_maps_api_key|default:"" }}';
+  if (!YM_API_KEY) {
+    console.warn('Yandex Maps API key is missing. Map code skipped.');
+    // Nothing else runs; overlay in HTML explains next steps
+  } else {
   // === Serverdan kelgan ma'lumotlar ===
-  const points = {{ points|safe }};
+  const points = JSON.parse('{{ points|escapejs }}');
+  const couriers = JSON.parse('{{ couriers|escapejs }}');
   const center = [41.311081, 69.240562]; // Toshkent
 
   // Status -> preset xaritasi (StretchyIcon: rang + label)
   function presetForStatus(p){
+    // Kuryersiz buyurtmalar - TO'LIQ QORA
+    if (!p.courier_id) {
+      return 'islands#blackStretchyIcon';
+    }
+    
     const raw = (p.status_raw || p.status || '').toLowerCase();
     if (raw.includes('completed') || raw.includes('bajardi')) return 'islands#greenStretchyIcon';
     if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
@@ -161,6 +220,7 @@
   function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&gt;','>':'&lt;','"':'&quot;',"'":'&#39;'}[m])); }
 
   let map;
+  let allPlacemarks = []; // Barcha markerlarni saqlash
 
   ymaps.ready(init);
   function init(){
@@ -170,23 +230,19 @@
 
     renderMarkers();
 
-    // Recenter tugmasi
-    document.getElementById('ml-fit').addEventListener('click', recenter);
-
-    // Fullscreen (native)
-    const fsBtn = document.getElementById('ml-fs');
-    const mapEl = document.getElementById('orders-full-map');
-    fsBtn.addEventListener('click', async ()=>{
-      if(!document.fullscreenElement){
-        await mapEl.requestFullscreen?.();
-        fsBtn.textContent = 'Exit fullscreen';
-      }else{
-        await document.exitFullscreen?.();
-        fsBtn.textContent = 'Fullscreen';
+    // Yandex SearchControl (joy nomlari bo'yicha qidiruv)
+    const searchControl = new ymaps.control.SearchControl({
+      options: {
+        provider: 'yandex#search',
+        useMapBounds: true,
+        noPlacemark: false,
+        size: 'large',
+        float: 'right',
       }
-      setTimeout(()=> map.container.fitToViewport(), 200);
     });
-    document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
+    map.controls.add(searchControl);
+
+    // (Removed) custom Recenter and Fullscreen buttons
 
     // Preset chip’lari
     document.querySelectorAll('#filter-panel [data-preset]').forEach(btn=>{
@@ -240,6 +296,7 @@
 
   function renderMarkers(){
     map.geoObjects.removeAll();
+  allPlacemarks = []; // Qidiruv uchun barcha markerlarni tozalash
 
     const collection = new ymaps.GeoObjectCollection();
     points.forEach(p=>{
@@ -247,18 +304,34 @@
       const placemark = new ymaps.Placemark([p.lat, p.lon], {
         iconContent: esc(p.client),
         balloonContent: `
-          <strong>Mijoz:</strong> ${esc(p.client)}<br>
-          ${p.courier ? `<strong>Kurer:</strong> ${esc(p.courier)}<br>` : ''}
-          <strong>Status:</strong> ${esc(p.status)}<br>
-          <strong>Sana:</strong> ${esc(p.date)}<br>
-          <strong>Narx:</strong> ${Number(p.price).toLocaleString()} so'm<br>
-          ${p.payment ? `<strong>To‘lov:</strong> ${esc(p.payment)}` : ''}<br>
-          <a href="/orders/${p.id}/" class="underline">Ko‘rish</a>
+          <div style="max-width: 280px;">
+            <strong>📋 Mijoz:</strong> ${esc(p.client)}<br>
+            ${p.courier ? `<strong>👤 Kurer:</strong> ${esc(p.courier)}<br>` : '<strong style="color:#dc2626">⚠️ Kuryer biriktirilmagan</strong><br>'}
+            <strong>📊 Status:</strong> ${esc(p.status)}<br>
+            <strong>📅 Sana:</strong> ${esc(p.date)}<br>
+            <strong>💰 Narx:</strong> ${Number(p.price).toLocaleString()} so'm<br>
+            ${p.payment_method ? `<strong>💳 To'lov:</strong> ${esc(p.payment_method)}<br>` : ''}
+            <strong>📦 Miqdor:</strong> Kiruvchi ${p.inquantity}, Chiquvchi ${p.outquantity}<br>
+            <div style="margin-top: 8px; display: flex; gap: 8px;">
+              <button onclick="openAssignModal(${p.id}, '${esc(p.client)}', ${p.courier_id || 'null'})" 
+                      style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; flex: 1;">
+                ${p.courier ? '🔄 Kuryerni o\'zgartirish' : '➕ Kuryer biriktirish'}
+              </button>
+              <a href="/orders/${p.id}/" 
+                 style="padding: 6px 12px; background: #6b7280; color: white; border: none; border-radius: 6px; text-decoration: none; display: inline-block;">
+                👁️ Ko'rish
+              </a>
+            </div>
+          </div>
         `
       }, {
         preset,
         iconMaxWidth: 240
       });
+
+      // Qidiruv uchun saqlash
+      allPlacemarks.push({ placemark, point: p });
+
       collection.add(placemark);
     });
 
@@ -271,6 +344,8 @@
     if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 20});
     else map.setCenter(center, 11);
   }
+
+  // (Removed) Custom search/highlight/filter functions — using Yandex SearchControl instead
 
   // === Filtr panelini toggling (har doim tugma bilan, default: yopiq) ===
   function setupFilterToggle(mapInstance){
@@ -325,6 +400,81 @@
         sessionStorage.setItem(storageKey, '0');
       }
     });
+  }
+
+  // === Kuryer biriktirish modal ===
+  let currentOrderId = null;
+
+  function openAssignModal(orderId, clientName, currentCourierId) {
+    currentOrderId = orderId;
+    const modal = document.getElementById('assignCourierModal');
+    const select = document.getElementById('courierSelect');
+    const title = document.getElementById('modalClientName');
+    
+    title.textContent = clientName;
+    
+    // Select ni to'ldirish
+    select.innerHTML = '<option value="">-- Kuryerni olib tashlash --</option>';
+    couriers.forEach(c => {
+      const option = document.createElement('option');
+      option.value = c.id;
+      option.textContent = c.username;
+      if (c.id === currentCourierId) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+    
+    modal.classList.remove('hidden');
+  }
+
+  function closeAssignModal() {
+    document.getElementById('assignCourierModal').classList.add('hidden');
+    currentOrderId = null;
+  }
+
+  async function assignCourier() {
+    const select = document.getElementById('courierSelect');
+    const courierId = select.value || null;
+    const errorDiv = document.getElementById('assignError');
+    
+    errorDiv.classList.add('hidden');
+    
+    try {
+      const response = await fetch(`/orders/${currentOrderId}/assign-courier/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ courier_id: courierId })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        closeAssignModal();
+        location.reload(); // Sahifani yangilash
+      } else {
+        errorDiv.textContent = data.error || 'Xatolik yuz berdi';
+        errorDiv.classList.remove('hidden');
+      }
+    } catch (error) {
+      errorDiv.textContent = 'Xatolik: ' + error.message;
+      errorDiv.classList.remove('hidden');
+    }
+  }
+
+  function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
+  // Global funksiyalar
+  window.openAssignModal = openAssignModal;
+  window.closeAssignModal = closeAssignModal;
+  window.assignCourier = assignCourier;
   }
 </script>
 {% endblock %}

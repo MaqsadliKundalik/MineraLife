@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     OrderDeleteView, OrderListView, OrderCreateView, OrderDetailView, OrderUpdateView, OrdersMapView, 
+    assign_courier_to_order,
 )
 
 app_name = "orders"
@@ -12,4 +13,5 @@ urlpatterns = [
     path("<int:pk>/", OrderDetailView.as_view(), name="detail"),
     path("<int:pk>/edit/", OrderUpdateView.as_view(), name="update"),
     path("<int:pk>/delete/", OrderDeleteView.as_view(), name="delete"),
+    path("<int:order_id>/assign-courier/", assign_courier_to_order, name="assign_courier"),
 ]

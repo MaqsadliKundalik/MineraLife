@@ -12,6 +12,11 @@ from django.utils.dateparse import parse_date
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User, Group
 from admin_panel.mixins import SuperuserRequiredMixin
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import user_passes_test
+import json
+from django.conf import settings
 
 class OrderListView(SuperuserRequiredMixin, ListView):
     model = Order
@@ -225,9 +230,15 @@ class OrdersMapView(SuperuserRequiredMixin, TemplateView):
                 "lat": o.client.latitude,
                 "lon": o.client.longitude,
                 "status": o.get_status_display(),
+                "status_raw": o.status,
                 "price": float(o.price),
                 "date": o.effective_date.isoformat(),
                 "courier": (o.courier.username if o.courier_id else None),
+                "courier_id": o.courier_id,
+                "inquantity": o.inquantity,
+                "outquantity": o.outquantity,
+                "payment_method": o.get_payment_method_display(),
+                "address": o.client.caption or "",
             }
             for o in qs
         ]
@@ -235,9 +246,45 @@ class OrdersMapView(SuperuserRequiredMixin, TemplateView):
         ctx["start_date"] = start
         ctx["end_date"] = end
         ctx["preset"] = preset
-        ctx["couriers"] = list(self._courier_qs().values("id", "username"))
         ctx["selected_couriers"] = selected_ids
+        
+        # JSON serialize qilish (template uchun)
+        ctx["points"] = json.dumps(ctx["points"])
+        ctx["couriers"] = json.dumps(list(self._courier_qs().values("id", "username")))
+        ctx["yandex_maps_api_key"] = settings.YANDEX_MAPS_API_KEY
+        
         return ctx
+
+
+# Buyurtmaga kuryer biriktirish API
+@require_POST
+@user_passes_test(lambda u: u.is_superuser)
+def assign_courier_to_order(request, order_id):
+    """Admin xaritadan buyurtmaga kuryer biriktiradi"""
+    try:
+        order = Order.objects.get(id=order_id)
+        data = json.loads(request.body)
+        courier_id = data.get('courier_id')
+        
+        if courier_id:
+            courier = User.objects.get(id=courier_id)
+            order.courier = courier
+        else:
+            order.courier = None
+        
+        order.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Kuryer muvaffaqiyatli biriktirildi',
+            'courier': order.courier.username if order.courier else None
+        })
+    except Order.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Buyurtma topilmadi'}, status=404)
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Kuryer topilmadi'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 class OrderCreateView(SuperuserRequiredMixin, CreateView):

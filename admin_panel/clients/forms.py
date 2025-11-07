@@ -46,25 +46,66 @@ ClientPhoneNumberFormSet = inlineformset_factory(
 )
 
 class ClientForm(forms.ModelForm):
+    # Bitta maydonda kiritish: "lat, lon"
+    coordinates = forms.CharField(
+        required=False,
+        label="Koordinatalar (lat, lon)",
+        widget=forms.TextInput(
+            attrs=_attrs(placeholder="41.311081, 69.240562")
+        ),
+        help_text="Format: latitude, longitude (vergul bilan)",
+    )
+
     class Meta:
         model = Client
         fields = ["name", "latitude", "longitude", "caption"]
         widgets = {
             "name": forms.TextInput(attrs=_attrs(placeholder="Ism Familiya")),
-            "latitude": forms.NumberInput(attrs=_attrs(step="0.000001", placeholder="41.311081")),
-            "longitude": forms.NumberInput(attrs=_attrs(step="0.000001", placeholder="69.240562")),
+            # UI da bitta maydon orqali kiritiladi, shu sababli hidden qilib qo'yamiz
+            "latitude": forms.HiddenInput(),
+            "longitude": forms.HiddenInput(),
             "caption": forms.Textarea(attrs=_attrs(placeholder="Qo'shimcha ma'lumotlar")),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Agar mavjud qiymatlar bo'lsa, coordinates maydonini to'ldirib qo'yamiz
+        lat = self.initial.get("latitude") or (self.instance and getattr(self.instance, "latitude", None))
+        lon = self.initial.get("longitude") or (self.instance and getattr(self.instance, "longitude", None))
+        try:
+            if lat is not None and lon is not None and self.fields.get("coordinates"):
+                self.initial.setdefault("coordinates", f"{float(lat):.6f}, {float(lon):.6f}")
+        except Exception:
+            # agar floatga aylantirib bo'lmasa, shunchaki e'tiborsiz qoldiramiz
+            pass
 
     def clean(self):
         data = super().clean()
         lat, lon = data.get("latitude"), data.get("longitude")
+        coords = data.get("coordinates")
+
+        # Agar coordinates maydoni to'ldirilgan bo'lsa, undan parslaymiz
+        if coords:
+            import re
+            m = re.match(r"^\s*([+-]?\d+(?:\.\d+)?)\s*,\s*([+-]?\d+(?:\.\d+)?)\s*$", coords)
+            if not m:
+                self.add_error("coordinates", "Koordinatalar formati: 41.311081, 69.240562 (vergul bilan ajratilgan)")
+            else:
+                try:
+                    lat = float(m.group(1))
+                    lon = float(m.group(2))
+                    data["latitude"], data["longitude"] = lat, lon
+                except ValueError:
+                    self.add_error("coordinates", "Koordinatalarni raqam sifatida kiriting")
+
         # Agar bittasi kiritilsa, ikkinchisi ham bo‘lsin
         if (lat is None) ^ (lon is None):
             raise forms.ValidationError("Latitude va Longitude ikkalasi ham birga kiritilishi kerak (yoki ikkalasi ham bo‘sh).")
+
         # Diapazon tekshiruvi
         if lat is not None and not (-90 <= lat <= 90):
-            self.add_error("latitude", "Latitude -90 dan 90 gacha bo‘lishi kerak.")
+            self.add_error("coordinates", "Latitude -90 dan 90 gacha bo‘lishi kerak.")
         if lon is not None and not (-180 <= lon <= 180):
-            self.add_error("longitude", "Longitude -180 dan 180 gacha bo‘lishi kerak.")
+            self.add_error("coordinates", "Longitude -180 dan 180 gacha bo‘lishi kerak.")
+
         return data

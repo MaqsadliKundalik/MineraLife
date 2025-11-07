@@ -2,5 +2,8 @@
 /env
 /win_env
 admin_panel/db.sqlite3
-admin_panel/db.sqlite3
 /myenv
+
+# Ignore any SQLite databases named exactly 'db.sqlite3' anywhere
+db.sqlite3
+admin_panel/db.sqlite3
