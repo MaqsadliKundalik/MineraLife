@@ -27,10 +27,10 @@
     <p class="text-gray-600 dark:text-gray-400">Sana bo‘yicha filtrlash va mini xarita</p>
   </div>
 
-  <a href="{% url 'orders:create' %}"
+  <a href="{% url 'orders:create' %}{% if end_date %}?date={{ end_date|date:'Y-m-d' }}{% endif %}"
      class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl
             bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition">
-    <span class="text-base">+ Buyurtma qo‘shish</span>
+    <span class="text-base">+ Buyurtma qo'shish</span>
   </a>
 </div>
 
