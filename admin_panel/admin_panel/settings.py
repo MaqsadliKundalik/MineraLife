@@ -37,12 +37,17 @@ if ENV_PATH.exists():
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-7jpa7hp@yv8krwag6t_f64(4+z&qqsi$h(^+oc)km7*%imqo=#'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-7jpa7hp@yv8krwag6t_f64(4+z&qqsi$h(^+oc)km7*%imqo=#')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = ["*"]
+# Parse ALLOWED_HOSTS from environment
+ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', '*')
+if ALLOWED_HOSTS_STR == '*':
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
 LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'               # muvaffaqiyatli kirganda qayerga olib borish
 LOGOUT_REDIRECT_URL = '/accounts/login/'  # chiqgandan keyin login sahifaga qaytarish
@@ -100,16 +105,30 @@ WSGI_APPLICATION = 'admin_panel.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+# Use MySQL for production (PythonAnywhere), SQLite for local development
+# if os.environ.get('USE_MYSQL', 'False').lower() == 'true':
+#     # Production MySQL configuration (PythonAnywhere)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('POSTGRESQL_DBNAME', 'default_db'),
-        'USER': os.environ.get('POSTGRESQL_USER', 'gen_user'),
-        'PASSWORD': os.environ.get('POSTGRESQL_PASSWORD', 'yK6{W1F72Ll#W$'),
-        'HOST': os.environ.get('POSTGRESQL_HOST', 'b5b5b4d135fb8bc2dd1f72e6.twc1.net'),
-        'PORT': os.environ.get('POSTGRESQL_PORT', '5432'),
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': os.environ.get('MYSQL_DBNAME', 'mineralife$default'),
+        'USER': os.environ.get('MYSQL_USER', 'mineralife'),
+        'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'wwwMiner123'),
+        'HOST': os.environ.get('MYSQL_HOST', 'mineralife.mysql.pythonanywhere-services.com'),
+        'PORT': os.environ.get('MYSQL_PORT', '3306'),
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
+# else:
+#     # Local development SQLite configuration
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.sqlite3',
+#             'NAME': BASE_DIR / 'db.sqlite3',
+#         }
+#     }
 
 
 # Password validation
@@ -146,7 +165,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -159,3 +179,9 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # External API keys
 # Provide via environment variable in production
 YANDEX_MAPS_API_KEY = os.environ.get('YANDEX_MAPS_API_KEY', '')
+
+# CSRF trusted origins for production
+if not DEBUG:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://mineralife.pythonanywhere.com',
+    ]
