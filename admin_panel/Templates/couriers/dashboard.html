@@ -119,7 +119,11 @@
                                             {{ order.get_price_display }}
                                         </span>
                                     </div>
-                                    
+                                    {% if order.client.caption %}
+                                    <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                        {{ order.client.caption }}
+                                    </div>
+                                    {% endif %}
                                     {% if order.client.phone_numbers.all %}
                                     <div class="mt-2 flex items-center text-sm text-gray-600 dark:text-gray-400">
                                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -34,32 +34,32 @@
   </div>
 
   <!-- Statistika -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <div class="bg-gradient-to-r from-green-500 to-green-600 p-4 rounded-lg text-white shadow">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-green-100 text-sm">Naqd tushum</p>
-          <p class="text-xl font-bold">{{ stats.cash|floatformat:0 }} so'm</p>
+  <div class="grid grid-cols-3 gap-2 sm:gap-3">
+    <div class="bg-gradient-to-r from-green-500 to-green-600 p-2 sm:p-3 rounded-lg text-white shadow">
+      <div class="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-center sm:text-left">
+          <p class="text-green-100 text-[9px] sm:text-xs">Naqd</p>
+          <p class="text-xs sm:text-lg font-bold">{{ stats.cash|floatformat:0 }}</p>
         </div>
-        <div class="text-2xl">💵</div>
+        <div class="hidden sm:block text-xl">💵</div>
       </div>
     </div>
-    <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-4 rounded-lg text-white shadow">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-blue-100 text-sm">Karta tushum</p>
-          <p class="text-xl font-bold">{{ stats.card|floatformat:0 }} so'm</p>
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-2 sm:p-3 rounded-lg text-white shadow">
+      <div class="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-center sm:text-left">
+          <p class="text-blue-100 text-[9px] sm:text-xs">Karta</p>
+          <p class="text-xs sm:text-lg font-bold">{{ stats.card|floatformat:0 }}</p>
         </div>
-        <div class="text-2xl">💳</div>
+        <div class="hidden sm:block text-xl">💳</div>
       </div>
     </div>
-    <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-4 rounded-lg text-white shadow">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-purple-100 text-sm">Perechesleniya</p>
-          <p class="text-xl font-bold">{{ stats.perechesleniya|floatformat:0 }} so'm</p>
+    <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-2 sm:p-3 rounded-lg text-white shadow">
+      <div class="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
+        <div class="text-center sm:text-left">
+          <p class="text-purple-100 text-[9px] sm:text-xs">Perech.</p>
+          <p class="text-xs sm:text-lg font-bold">{{ stats.perechesleniya|floatformat:0 }}</p>
         </div>
-        <div class="text-2xl">🏦</div>
+        <div class="hidden sm:block text-xl">🏦</div>
       </div>
     </div>
   </div>
@@ -137,6 +137,7 @@
             📅 ${esc(p.date)}<br>
             💰 ${p.inquantity} kiruvchi, ${p.outquantity} chiquvchi<br>
             💳 ${esc(p.payment)}<br>
+            ${p.client.caption ? `📍 ${esc(p.client.caption)}<br>` : ''}
             <div style="margin-top: 8px;">
               <button onclick="goToEdit(${p.id})" 
                       style="padding: 6px 12px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">
