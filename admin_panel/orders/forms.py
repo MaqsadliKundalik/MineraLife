@@ -55,8 +55,8 @@ class OrderForm(forms.ModelForm):
         
         # Placeholder va help textlar
         self.fields['effective_date'].help_text = "Buyurtma bajarilish sanasi"
-        self.fields['inquantity'].help_text = "Kiruvchi mahsulot miqdori"
-        self.fields['outquantity'].help_text = "Chiquvchi mahsulot miqdori"
+        self.fields['inquantity'].help_text = "oldim miqdori"
+        self.fields['outquantity'].help_text = "berdim miqdori"
         
     def clean_effective_date(self):
         """Sana validatsiyasi"""
@@ -89,9 +89,9 @@ class OrderForm(forms.ModelForm):
         
         # Miqdorlar hech bo'lmaganda 0 bo'lishi kerak (manfiy emas)
         if inquantity < 0:
-            raise ValidationError("Kiruvchi miqdor manfiy bo'lmasligi kerak")
+            raise ValidationError("\"oldim\" manfiy bo'lmasligi kerak")
         if outquantity < 0:
-            raise ValidationError("Chiquvchi miqdor manfiy bo'lmasligi kerak")
+            raise ValidationError("\"berdim\" manfiy bo'lmasligi kerak")
         
         # Ikkalasi ham 0 bo'lsa ogohlantiramiz, lekin bloklashmaymiz
         if inquantity == 0 and outquantity == 0:
