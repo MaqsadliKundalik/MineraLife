@@ -37,32 +37,32 @@
         </div>
 
         <!-- Holat ko'rsatkichi -->
-        <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="text-center p-4 rounded-lg border-2 
+        <div class="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow p-3 sm:p-6">
+            <div class="grid grid-cols-3 gap-2 sm:gap-4">
+                <div class="text-center p-2 sm:p-4 rounded-lg border-2 
                     {% if order.status == 'pending' %}border-yellow-300 bg-yellow-50 dark:bg-yellow-900 dark:border-yellow-600
                     {% elif order.status == 'completed' %}border-green-300 bg-green-50 dark:bg-green-900 dark:border-green-600
                     {% else %}border-red-300 bg-red-50 dark:bg-red-900 dark:border-red-600{% endif %}">
-                    <div class="text-2xl mb-2">
+                    <div class="text-lg sm:text-2xl mb-1 sm:mb-2">
                         {% if order.status == 'pending' %}⏳{% elif order.status == 'completed' %}✅{% else %}❌{% endif %}
                     </div>
-                    <div class="font-semibold text-gray-900 dark:text-white">
+                    <div class="text-xs sm:text-base font-semibold text-gray-900 dark:text-white">
                         {{ order.get_status_display }}
                     </div>
                 </div>
                 
-                <div class="text-center p-4 rounded-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900 dark:border-blue-600">
-                    <div class="text-2xl mb-2">
+                <div class="text-center p-2 sm:p-4 rounded-lg border-2 border-blue-300 bg-blue-50 dark:bg-blue-900 dark:border-blue-600">
+                    <div class="text-lg sm:text-2xl mb-1 sm:mb-2">
                         {% if order.payment_method == 'card' %}💳{% elif order.payment_method == 'cash' %}💵{% else %}🏦{% endif %}
                     </div>
-                    <div class="font-semibold text-gray-900 dark:text-white">
+                    <div class="text-xs sm:text-base font-semibold text-gray-900 dark:text-white">
                         {{ order.get_payment_method_display }}
                     </div>
                 </div>
                 
-                <div class="text-center p-4 rounded-lg border-2 border-green-300 bg-green-50 dark:bg-green-900 dark:border-green-600">
-                    <div class="text-2xl mb-2">💰</div>
-                    <div class="font-semibold text-gray-900 dark:text-white">
+                <div class="text-center p-2 sm:p-4 rounded-lg border-2 border-green-300 bg-green-50 dark:bg-green-900 dark:border-green-600">
+                    <div class="text-lg sm:text-2xl mb-1 sm:mb-2">💰</div>
+                    <div class="text-xs sm:text-base font-semibold text-gray-900 dark:text-white">
                         {{ order.get_price_display }}
                     </div>
                 </div>
