@@ -27,8 +27,8 @@ class OrderForm(forms.ModelForm):
         widgets = {
             "client": forms.Select(attrs=_attrs()),
             "courier": forms.Select(attrs=_attrs()),
-            "inquantity": forms.NumberInput(attrs=_attrs(min=0, placeholder="Kiruvchi miqdor")),
-            "outquantity": forms.NumberInput(attrs=_attrs(min=0, placeholder="Chiquvchi miqdor")),
+            "inquantity": forms.NumberInput(attrs=_attrs(min=0, placeholder="oldim")),
+            "outquantity": forms.NumberInput(attrs=_attrs(min=0, placeholder="berdim")),
             "price": forms.NumberInput(attrs=_attrs(step="0.01", min=0, placeholder="17000.00")),
             "status": forms.Select(attrs=_attrs()),
             "effective_date": forms.DateInput(attrs=_attrs(type="date")),
