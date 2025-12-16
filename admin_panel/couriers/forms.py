@@ -17,22 +17,22 @@ def _tw(**kw):
 
 
 class CourierQuickCompleteForm(forms.ModelForm):
-    """Tez bajarish formasi - kiruvchi, chiquvchi miqdorlar va izoh"""
+    """Tez bajarish formasi - oldim, berdim miqdorlar va izoh"""
     
     class Meta:
         model = Order
         fields = ["inquantity", "outquantity", "notes"]
         widgets = {
-            "inquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Kiruvchi miqdor")),
-            "outquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Chiquvchi miqdor", **{"data-price": "true"})),
+            "inquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="oldim")),
+            "outquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="berdim", **{"data-price": "true"})),
             "notes": forms.Textarea(attrs=_tw(rows=2, placeholder="Qo'shimcha izohlar (ixtiyoriy)...")),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        self.fields['inquantity'].label = "Kiruvchi miqdor"
-        self.fields['outquantity'].label = "Chiquvchi miqdor"
+        self.fields['inquantity'].label = "oldim"
+        self.fields['outquantity'].label = "berdim"
         self.fields['notes'].label = "Izohlar"
         
         self.fields['inquantity'].help_text = "Mijozga yetkazilgan mahsulot miqdori"
@@ -70,8 +70,8 @@ class CourierOrderUpdateForm(forms.ModelForm):
         model = Order
         fields = ["inquantity", "outquantity", "status", "payment_method", "notes"]
         widgets = {
-            "inquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Kiruvchi miqdor")),
-            "outquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="Chiquvchi miqdor")),
+            "inquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="oldim")),
+            "outquantity": forms.NumberInput(attrs=_tw(min=0, placeholder="berdim")),
             "status": forms.Select(attrs=_tw()),
             "payment_method": forms.Select(attrs=_tw()),
             "notes": forms.Textarea(attrs=_tw(rows=3, placeholder="Qo'shimcha izohlar...")),
@@ -91,8 +91,8 @@ class CourierOrderUpdateForm(forms.ModelForm):
         self.fields['payment_method'].choices = Order.PAYMENT_METHODS
         
         # Field labellarini o'zbek tilida
-        self.fields['inquantity'].label = "Kiruvchi miqdor"
-        self.fields['outquantity'].label = "Chiquvchi miqdor"
+        self.fields['inquantity'].label = "oldim"
+        self.fields['outquantity'].label = "berdim"
         self.fields['status'].label = "Buyurtma holati"
         self.fields['payment_method'].label = "To'lov usuli"
         self.fields['notes'].label = "Izohlar"
