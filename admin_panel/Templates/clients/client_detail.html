@@ -77,6 +77,18 @@
       </div>
     </div>
 
+   {% comment %} qo'shimcha ma'lumotlar {% endcomment %}
+   <div class="pt-2">
+      <div class="text-sm text-gray-500 dark:text-gray-400">Qo'shimcha ma'lumotlar</div>
+      <div class="text-gray-900 dark:text-gray-100">
+        {% if client.caption %}
+          {{ client.caption|linebreaksbr }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+    </div>
+
     <!-- Address line -->
     <div class="pt-2">
       <div class="text-sm text-gray-500 dark:text-gray-400">Manzil</div>
