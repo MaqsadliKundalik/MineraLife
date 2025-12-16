@@ -113,14 +113,14 @@ class CourierOrderUpdateForm(forms.ModelForm):
         # Hech bo'lmaganda bittasi 0 dan katta bo'lishi kerak
         if inquantity == 0 and outquantity == 0:
             raise ValidationError(
-                "Hech bo'lmaganda kiruvchi yoki chiquvchi miqdor 0 dan katta bo'lishi kerak"
+                "Hech bo'lmaganda oldim yoki berdim miqdor 0 dan katta bo'lishi kerak"
             )
             
         # Miqdorlar manfiy bo'lmasligi kerak
         if inquantity < 0:
-            raise ValidationError("Kiruvchi miqdor manfiy bo'lmasligi kerak")
+            raise ValidationError("Oldim miqdor manfiy bo'lmasligi kerak")
         if outquantity < 0:
-            raise ValidationError("Chiquvchi miqdor manfiy bo'lmasligi kerak")
+            raise ValidationError("Berdim miqdor manfiy bo'lmasligi kerak")
             
         return cleaned_data
 

@@ -43,7 +43,7 @@ class Order(models.Model):
         return f"#{self.id} - {self.client.name} ({self.get_status_display()})"
     
     def get_total_price(self):
-        """Umumiy narx: chiquvchi miqdor * birlik narx"""
+        """Umumiy narx: berdim miqdor * birlik narx"""
         return self.outquantity * self.price
     
     def get_price_display(self):

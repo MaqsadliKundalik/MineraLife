@@ -81,7 +81,7 @@ def courier_order_update(request, pk):
                     order = quick_form.save(commit=False)
                     order.status = 'completed'
                     order.save()
-                    messages.success(request, f"Buyurtma muvaffaqiyatli bajarildi! Kiruvchi: {order.inquantity}, Chiquvchi: {order.outquantity} dona")
+                    messages.success(request, f"Buyurtma muvaffaqiyatli bajarildi! Oldim: {order.inquantity}, Berdim: {order.outquantity} dona")
                     return redirect("couriers:dashboard")
                 else:
                     messages.error(request, "Formada xatoliklar bor. Iltimos, to'g'irlang.")

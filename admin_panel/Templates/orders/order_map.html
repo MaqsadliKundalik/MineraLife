@@ -311,7 +311,7 @@
             <strong>📅 Sana:</strong> ${esc(p.date)}<br>
             <strong>💰 Narx:</strong> ${Number(p.price).toLocaleString()} so'm<br>
             ${p.payment_method ? `<strong>💳 To'lov:</strong> ${esc(p.payment_method)}<br>` : ''}
-            <strong>📦 Miqdor:</strong> Kiruvchi ${p.inquantity}, Chiquvchi ${p.outquantity}<br>
+            <strong>📦 Miqdor:</strong> Oldim ${p.inquantity}, Berdim ${p.outquantity}<br>
             <div style="margin-top: 8px; display: flex; gap: 8px;">
               <button onclick="openAssignModal(${p.id}, '${esc(p.client)}', ${p.courier_id || 'null'})" 
                       style="padding: 6px 12px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; flex: 1;">
