@@ -128,6 +128,7 @@ def courier_map(request):
         "id": o.id,
         "client": o.client.name,
         "phone": o.client.get_phone_numbers_display() or "",
+        "caption": o.client.caption or "",
         "lat": o.client.latitude,
         "lon": o.client.longitude,
         "status": o.get_status_display(),
