@@ -7,6 +7,8 @@ from .models import Client
 from .forms import ClientForm, ClientPhoneNumberFormSet
 from admin_panel.mixins import SuperuserRequiredMixin
 from django.db import transaction
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
 
 class ClientListView(SuperuserRequiredMixin, ListView):
     model = Client
@@ -106,3 +108,24 @@ class ClientUpdateView(SuperuserRequiredMixin, UpdateView):
 
     def get_success_url(self):
         return reverse_lazy("clients:detail", kwargs={"pk": self.object.pk})
+
+
+@require_http_methods(["GET"])
+def check_name_exists(request):
+    """AJAX endpoint to check if client name already exists"""
+    name = request.GET.get('name', '').strip()
+    client_id = request.GET.get('client_id', None)
+    
+    if not name:
+        return JsonResponse({'exists': False})
+    
+    # Check if name exists
+    query = Client.objects.filter(name__iexact=name)
+    
+    # If updating existing client, exclude current client from check
+    if client_id:
+        query = query.exclude(pk=client_id)
+    
+    exists = query.exists()
+    
+    return JsonResponse({'exists': exists, 'name': name})

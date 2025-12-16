@@ -102,8 +102,12 @@ WSGI_APPLICATION = 'admin_panel.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('POSTGRESQL_DBNAME', 'default_db'),
+        'USER': os.environ.get('POSTGRESQL_USER', 'gen_user'),
+        'PASSWORD': os.environ.get('POSTGRESQL_PASSWORD', 'yK6{W1F72Ll#W$'),
+        'HOST': os.environ.get('POSTGRESQL_HOST', 'b5b5b4d135fb8bc2dd1f72e6.twc1.net'),
+        'PORT': os.environ.get('POSTGRESQL_PORT', '5432'),
     }
 }
 

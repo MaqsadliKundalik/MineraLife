@@ -39,6 +39,11 @@
     <div>
       <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">Ism <span class="text-red-500">*</span></label>
       {{ form.name }}
+      <div id="name-warning" class="mt-2 hidden">
+        <p class="text-sm text-yellow-600 dark:text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded px-3 py-2">
+          ⚠️ Bu nomli mijoz allaqachon mavjud!
+        </p>
+      </div>
       {% if form.name.errors %}<p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>{% endif %}
     </div>
 
@@ -313,5 +318,46 @@
       removePhoneForm(e.target);
     }
   });
+
+  // Real-time client name validation
+  const nameInput = document.getElementById('id_name');
+  const nameWarning = document.getElementById('name-warning');
+  let nameCheckTimeout = null;
+  const clientId = {{ client.pk|default:"null" }};
+
+  nameInput?.addEventListener('input', function() {
+    clearTimeout(nameCheckTimeout);
+    const name = this.value.trim();
+    
+    if (!name) {
+      nameWarning.classList.add('hidden');
+      return;
+    }
+    
+    // Debounce: wait 500ms after user stops typing
+    nameCheckTimeout = setTimeout(() => {
+      checkNameExists(name);
+    }, 500);
+  });
+
+  function checkNameExists(name) {
+    let url = "{% url 'clients:check_name' %}?name=" + encodeURIComponent(name);
+    if (clientId) {
+      url += "&client_id=" + clientId;
+    }
+    
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data.exists) {
+          nameWarning.classList.remove('hidden');
+        } else {
+          nameWarning.classList.add('hidden');
+        }
+      })
+      .catch(error => {
+        console.error('Name check error:', error);
+      });
+  }
 </script>
 {% endblock %}
