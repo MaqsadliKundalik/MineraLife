@@ -50,7 +50,24 @@ SECRET_KEY yaratish:
 python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
 ```
 
-## 6. Migrationlarni bajarish
+## 6. MySQL bazasini utf8mb4 ga o'zgartirish (emoji uchun)
+```bash
+mysql -u mineralife -p -h mineralife.mysql.pythonanywhere-services.com
+# Parol: wwwMiner123
+```
+
+MySQL consoleda:
+```sql
+USE mineralife$default;
+ALTER DATABASE `mineralife$default` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE clients_client CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE orders_order CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE products_product CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE clients_clientphonenumber CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+exit;
+```
+
+## 7. Migrationlarni bajarish
 ```bash
 cd ~/MineraLife/admin_panel
 python manage.py migrate
