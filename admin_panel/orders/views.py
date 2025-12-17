@@ -8,6 +8,7 @@ from django.utils.dateparse import parse_date
 from datetime import timedelta
 from datetime import datetime, timedelta
 from django.utils import timezone
+from couriers.models import CourierRoute
 from django.utils.dateparse import parse_date
 from django.views.generic import TemplateView
 from django.contrib.auth.models import User, Group
@@ -248,9 +249,25 @@ class OrdersMapView(SuperuserRequiredMixin, TemplateView):
         ctx["preset"] = preset
         ctx["selected_couriers"] = selected_ids
         
+        # Marshrut ma'lumotlarini olish
+        routes = CourierRoute.objects.filter(
+            date__range=(start, end)
+        ).select_related('courier')
+        
+        routes_data = []
+        for route in routes:
+            routes_data.append({
+                'courier_id': route.courier_id,
+                'courier_name': route.courier.username,
+                'date': route.date.isoformat(),
+                'route_data': route.route_data,
+                'color': route.color
+            })
+        
         # JSON serialize qilish (template uchun)
         ctx["points"] = json.dumps(ctx["points"])
         ctx["couriers"] = json.dumps(list(self._courier_qs().values("id", "username")))
+        ctx["routes"] = json.dumps(routes_data)
         ctx["yandex_maps_api_key"] = settings.YANDEX_MAPS_API_KEY
         
         return ctx
@@ -283,6 +300,74 @@ def assign_courier_to_order(request, order_id):
         return JsonResponse({'success': False, 'error': 'Buyurtma topilmadi'}, status=404)
     except User.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'Kuryer topilmadi'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# Kuryer marshrutini saqlash/o'chirish API
+@require_POST
+@user_passes_test(lambda u: u.is_superuser)
+def save_courier_route(request):
+    """Admin marshrut chizib, saqlaydi"""
+    try:
+        data = json.loads(request.body)
+        courier_id = data.get('courier_id')
+        date_str = data.get('date')
+        route_data = data.get('route_data', [])
+        color = data.get('color', '#2563eb')
+        
+        if not courier_id or not date_str:
+            return JsonResponse({'success': False, 'error': 'Kuryer va sana majburiy'}, status=400)
+        
+        courier = User.objects.get(id=courier_id)
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Marshrut mavjud bo'lsa yangilash, yo'q bo'lsa yaratish
+        route, created = CourierRoute.objects.update_or_create(
+            courier=courier,
+            date=date,
+            defaults={
+                'route_data': route_data,
+                'color': color
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Marshrut saqlandi' if created else 'Marshrut yangilandi',
+            'route_id': route.id
+        })
+        
+    except User.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Kuryer topilmadi'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@require_POST
+@user_passes_test(lambda u: u.is_superuser)
+def delete_courier_route(request):
+    """Marshrutni o'chirish"""
+    try:
+        data = json.loads(request.body)
+        courier_id = data.get('courier_id')
+        date_str = data.get('date')
+        
+        if not courier_id or not date_str:
+            return JsonResponse({'success': False, 'error': 'Kuryer va sana majburiy'}, status=400)
+        
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        deleted_count, _ = CourierRoute.objects.filter(
+            courier_id=courier_id,
+            date=date
+        ).delete()
+        
+        if deleted_count > 0:
+            return JsonResponse({'success': True, 'message': 'Marshrut o\'chirildi'})
+        else:
+            return JsonResponse({'success': False, 'error': 'Marshrut topilmadi'}, status=404)
+        
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
