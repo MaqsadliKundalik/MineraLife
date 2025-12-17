@@ -220,7 +220,7 @@
   } else {
   // === Serverdan kelgan ma'lumotlar ===
   const points = JSON.parse('{{ points|escapejs }}');
-  const couriers = JSON.parse('{{ couriers|escapejs }}');
+  const couriers = JSON.parse('{{ couriers_json|escapejs }}');
   const routes = JSON.parse('{{ routes|escapejs }}');
   const center = [41.311081, 69.240562]; // Toshkent
 

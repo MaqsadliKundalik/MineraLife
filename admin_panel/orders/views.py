@@ -264,9 +264,13 @@ class OrdersMapView(SuperuserRequiredMixin, TemplateView):
                 'color': route.color
             })
         
+        # Kuryer ro'yxati (HTML uchun va JSON uchun)
+        couriers_list = list(self._courier_qs().values("id", "username"))
+        
         # JSON serialize qilish (template uchun)
         ctx["points"] = json.dumps(ctx["points"])
-        ctx["couriers"] = json.dumps(list(self._courier_qs().values("id", "username")))
+        ctx["couriers"] = couriers_list  # HTML dropdown uchun
+        ctx["couriers_json"] = json.dumps(couriers_list)  # JavaScript uchun
         ctx["routes"] = json.dumps(routes_data)
         ctx["yandex_maps_api_key"] = settings.YANDEX_MAPS_API_KEY
         
