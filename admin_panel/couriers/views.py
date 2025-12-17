@@ -24,6 +24,7 @@ from django.utils import timezone
 from datetime import datetime
 
 from orders.models import Order
+from couriers.models import CourierRoute
 
 def _safe_parse_date(s: str):
     """YYYY-MM-DD ni date ga parse qiladi; xato bo‘lsa None qaytaradi."""
@@ -147,8 +148,20 @@ def courier_map(request):
         "perechesleniya": qs.filter(status="completed", payment_method="perechesleniya").aggregate(total=Sum(F("price") * F("outquantity")))["total"] or 0,  # 🔹 yangi
     }
 
+    # Kuryerning bugungi marshrutini olish
+    route = None
+    try:
+        courier_route = CourierRoute.objects.get(courier=request.user, date=today)
+        route = {
+            'route_data': courier_route.route_data,
+            'color': courier_route.color
+        }
+    except CourierRoute.DoesNotExist:
+        pass
+
     return render(request, "couriers/map.html", {
         "points": json.dumps(points),
+        "route": json.dumps(route) if route else 'null',
         "stats": stats,
         "today": today,
     })

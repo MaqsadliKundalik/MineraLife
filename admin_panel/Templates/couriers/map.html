@@ -20,6 +20,15 @@
 
 {% block content %}
 <div class="h-full">
+  <!-- Marshrut xabari -->
+  {% if route != 'null' %}
+  <div class="bg-blue-50 dark:bg-blue-900 border-l-4 border-blue-500 p-3 mb-2 rounded">
+    <p class="text-sm text-blue-700 dark:text-blue-200">
+      🗺️ <strong>Admin sizga bugun uchun marshrut belgiladi!</strong> Xaritada ko'k chiziq bo'ylab harakat qiling.
+    </p>
+  </div>
+  {% endif %}
+  
   <!-- Xarita -->
   <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2">
     <div class="relative">
@@ -56,6 +65,7 @@
 <script>
   // Data
   const points = JSON.parse('{{ points|escapejs }}');
+  const route = {{ route|safe }};
   const center = points.length ? [points.reduce((s,p) => s + p.lat, 0) / points.length, 
                                   points.reduce((s,p) => s + p.lon, 0) / points.length] : [41.2995, 69.2401];
 
@@ -119,6 +129,23 @@
     });
 
     map.geoObjects.add(collection);
+    
+    // Admin tomonidan belgilangan marshrutni ko'rsatish
+    if (route && route.route_data && route.route_data.length > 0) {
+      const routeLine = new ymaps.Polyline(
+        route.route_data,
+        {
+          balloonContent: 'Sizning marshrutingiz'
+        },
+        {
+          strokeColor: route.color || '#2563eb',
+          strokeWidth: 4,
+          strokeOpacity: 0.7
+        }
+      );
+      map.geoObjects.add(routeLine);
+    }
+    
     recenter();
 
     // Tugmalar

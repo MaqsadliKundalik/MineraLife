@@ -8,9 +8,9 @@
   {% endif %}
 
   <style>
-    /* Xarita balandligi (navbar + footer’ni hisobga olib) */
+    /* Xarita balandligi (navbar + statistika panel'ni hisobga olib) */
     #orders-full-map{
-      height: calc(100vh - 140px);
+      height: calc(100vh - 280px);
       border-radius: .75rem;
       overflow: hidden;
     }
@@ -189,6 +189,17 @@
     <!-- Marshrut chizish bo'limi -->
     <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(107,114,128,.3);">
       <div style="font-weight: 600; margin-bottom: 8px;">📍 Marshrut chizish</div>
+      
+      <!-- Kuryerlar ranglar legendasi -->
+      <div id="courier-legend" style="margin-bottom: 8px; font-size: 10px; max-height: 100px; overflow-y: auto; padding: 4px; background: rgba(0,0,0,0.02); border-radius: 4px;">
+        {% for c in couriers %}
+          <div style="display: flex; align-items: center; gap: 4px; margin-bottom: 2px;">
+            <div class="courier-color-box" data-courier-id="{{ c.id }}" style="width: 12px; height: 12px; border-radius: 2px; border: 1px solid rgba(0,0,0,0.2);"></div>
+            <span style="font-size: 10px;">{{ c.username }}</span>
+          </div>
+        {% endfor %}
+      </div>
+      
       <select id="ml-route-courier" class="ml-select" style="margin-bottom: 8px;">
         <option value="">Kuryerni tanlang</option>
         {% for c in couriers %}
@@ -208,6 +219,16 @@
 
   
 </div>
+
+<!-- Kuryer statistikasi paneli -->
+<div class="mt-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+    📊 Kuryer statistikasi
+  </h3>
+  <div id="courier-stats" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+    <!-- JavaScript orqali to'ldiriladi -->
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -223,6 +244,105 @@
   const couriers = JSON.parse('{{ couriers_json|escapejs }}');
   const routes = JSON.parse('{{ routes|escapejs }}');
   const center = [41.311081, 69.240562]; // Toshkent
+
+  // Har bir kuryer uchun unique rang generatsiya qilish
+  function getCourierColor(courierId) {
+    if (!courierId) return '#2563eb'; // default ko'k
+    // ID asosida hue qiymatini hisoblash (0-360)
+    const hue = (courierId * 137.508) % 360; // Golden angle
+    return `hsl(${hue}, 70%, 50%)`;
+  }
+
+  // Kuryerlar ranglarini legend'ga to'ldirish
+  function initializeCourierLegend() {
+    document.querySelectorAll('.courier-color-box').forEach(box => {
+      const courierId = parseInt(box.dataset.courierId);
+      box.style.backgroundColor = getCourierColor(courierId);
+    });
+  }
+
+  // Kuryer statistikasini hisoblash va ko'rsatish
+  function renderCourierStats() {
+    const statsContainer = document.getElementById('courier-stats');
+    if (!statsContainer) return;
+
+    // Har bir kuryer uchun buyurtmalar sonini hisoblash
+    const courierOrders = {};
+    const courierNames = {};
+    
+    // Barcha kuryerlarni ro'yxatga olish
+    couriers.forEach(c => {
+      courierOrders[c.id] = 0;
+      courierNames[c.id] = c.username;
+    });
+    
+    // Kuryersiz buyurtmalar
+    courierOrders['unassigned'] = 0;
+    courierNames['unassigned'] = 'Tayinlanmagan';
+    
+    // Buyurtmalarni sanash
+    points.forEach(p => {
+      if (p.courier_id) {
+        courierOrders[p.courier_id] = (courierOrders[p.courier_id] || 0) + 1;
+      } else {
+        courierOrders['unassigned']++;
+      }
+    });
+    
+    // HTML yaratish
+    let html = '';
+    
+    // Tayinlanmagan buyurtmalarni birinchi ko'rsatish
+    if (courierOrders['unassigned'] > 0) {
+      html += `
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-3 border-2 border-gray-300 dark:border-gray-600">
+          <div class="flex items-center gap-2 mb-1">
+            <div style="width: 16px; height: 16px; background: #1f2937; border-radius: 4px;"></div>
+            <span class="text-sm font-medium text-gray-900 dark:text-white">Tayinlanmagan</span>
+          </div>
+          <div class="text-2xl font-bold text-gray-900 dark:text-white">${courierOrders['unassigned']}</div>
+          <div class="text-xs text-gray-600 dark:text-gray-400">buyurtma</div>
+        </div>
+      `;
+    }
+    
+    // Kuryerlar statistikasini ko'rsatish (faqat buyurtmasi borlar)
+    Object.entries(courierOrders)
+      .filter(([id, count]) => id !== 'unassigned' && count > 0)
+      .sort((a, b) => b[1] - a[1]) // Ko'p buyurtmadan kamga
+      .forEach(([courierId, count]) => {
+        const color = getCourierColor(parseInt(courierId));
+        const name = courierNames[courierId] || 'Noma\'lum';
+        
+        html += `
+          <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 border-2 hover:shadow-lg transition-shadow cursor-pointer"
+               style="border-color: ${color};"
+               onclick="filterByCourier(${courierId})">
+            <div class="flex items-center gap-2 mb-1">
+              <div style="width: 16px; height: 16px; background: ${color}; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">${esc(name)}</span>
+            </div>
+            <div class="text-2xl font-bold text-gray-900 dark:text-white">${count}</div>
+            <div class="text-xs text-gray-600 dark:text-gray-400">buyurtma</div>
+          </div>
+        `;
+      });
+    
+    statsContainer.innerHTML = html || '<div class="col-span-full text-center text-gray-500">Buyurtmalar yo\'q</div>';
+  }
+  
+  // Kuryerga qarab filtr qilish
+  function filterByCourier(courierId) {
+    const form = document.getElementById('ml-filter-form');
+    const select = form.querySelector('select[name="courier"]');
+    if (select) {
+      // Faqat shu kuryerni tanlash
+      Array.from(select.options).forEach(opt => {
+        opt.selected = (opt.value == courierId);
+      });
+      form.submit();
+    }
+  }
 
   // Status -> preset xaritasi (StretchyIcon: rang + label)
   function presetForStatus(p){
@@ -251,6 +371,12 @@
     map = new ymaps.Map("orders-full-map", {
       center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
     });
+
+    // Kuryerlar ranglarini legend'ga to'ldirish
+    initializeCourierLegend();
+    
+    // Kuryer statistikasini ko'rsatish
+    renderCourierStats();
 
     renderMarkers();
 
@@ -404,9 +530,32 @@
       drawBtn.disabled = !selectedCourier;
       clearBtn.disabled = !selectedCourier;
       
-      // Agar bu kuryer uchun marshrut mavjud bo'lsa
-      if (selectedCourier && savedRoutes[selectedCourier]) {
-        statusDiv.innerHTML = '✅ Bu kuryer uchun marshrut mavjud';
+      // Barcha kuryer ranglarini reset qilish
+      document.querySelectorAll('.courier-color-box').forEach(box => {
+        box.style.borderWidth = '1px';
+        box.style.boxShadow = 'none';
+      });
+      
+      // Kuryer rangini ko'rsatish
+      if (selectedCourier) {
+        const color = getCourierColor(parseInt(selectedCourier));
+        
+        // Legenddagi rangni highlight qilish
+        const legendBox = document.querySelector(`.courier-color-box[data-courier-id="${selectedCourier}"]`);
+        if (legendBox) {
+          legendBox.style.borderWidth = '2px';
+          legendBox.style.boxShadow = '0 0 8px ' + color;
+        }
+        
+        statusDiv.innerHTML = `<div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 24px; height: 24px; background: ${color}; border-radius: 4px; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+          <span>Marshrut bu rangda chiziladi</span>
+        </div>`;
+        
+        // Agar bu kuryer uchun marshrut mavjud bo'lsa
+        if (savedRoutes[selectedCourier]) {
+          statusDiv.innerHTML += '<div style="margin-top: 4px;">✅ Bu kuryer uchun marshrut mavjud</div>';
+        }
       } else {
         statusDiv.innerHTML = '';
       }
@@ -496,11 +645,14 @@
       map.geoObjects.remove(currentRoute);
     }
     
+    // Kuryerning rangini olish
+    const courierColor = getCourierColor(parseInt(selectedCourier));
+    
     currentRoute = new ymaps.Polyline(
       currentRouteCoords,
       {},
       {
-        strokeColor: '#2563eb',
+        strokeColor: courierColor,
         strokeWidth: 4,
         strokeOpacity: 0.7
       }
@@ -529,6 +681,8 @@
     statusDiv.innerHTML = '⏳ Saqlanmoqda...';
     
     try {
+      const courierColor = getCourierColor(parseInt(selectedCourier));
+      
       const response = await fetch('/orders/route/save/', {
         method: 'POST',
         headers: {
@@ -539,7 +693,7 @@
           courier_id: selectedCourier,
           date: '{{ start_date|date:"Y-m-d" }}',
           route_data: currentRouteCoords,
-          color: '#2563eb'
+          color: courierColor
         })
       });
       
