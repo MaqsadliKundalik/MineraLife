@@ -131,11 +131,11 @@
     map.geoObjects.add(collection);
     
     // Admin tomonidan belgilangan marshrutni ko'rsatish
-    if (route && route.route_data && route.route_data.length > 0) {
+    if (route && route.route_data && route.route_data.length >= 2) {
       const routeLine = new ymaps.Polyline(
         route.route_data,
         {
-          balloonContent: 'Sizning marshrutingiz'
+          hintContent: 'Sizning marshrutingiz'
         },
         {
           strokeColor: route.color || '#2563eb',

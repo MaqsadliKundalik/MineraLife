@@ -250,7 +250,38 @@
     if (!courierId) return '#2563eb'; // default ko'k
     // ID asosida hue qiymatini hisoblash (0-360)
     const hue = (courierId * 137.508) % 360; // Golden angle
-    return `hsl(${hue}, 70%, 50%)`;
+    // HSL ni HEX ga o'zgartirish (Yandex Maps uchun)
+    return hslToHex(hue, 70, 50);
+  }
+  
+  // HSL ni HEX formatga o'zgartirish
+  function hslToHex(h, s, l) {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c/2;
+    let r = 0, g = 0, b = 0;
+    if (0 <= h && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+      r = c; g = 0; b = x;
+    }
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    return "#" + [r, g, b].map(x => {
+      const hex = x.toString(16);
+      return hex.length === 1 ? "0" + hex : hex;
+    }).join('');
   }
 
   // Kuryerlar ranglarini legend'ga to'ldirish
@@ -503,7 +534,7 @@
         const polyline = new ymaps.Polyline(
           route.route_data,
           {
-            balloonContent: `Marshrut: ${route.courier_name} (${route.date})`
+            hintContent: `Marshrut: ${route.courier_name || 'Noma\'lum'} (${route.date || ''})`
           },
           {
             strokeColor: route.color || '#2563eb',
@@ -643,22 +674,37 @@
     // Chiziqni yangilash
     if (currentRoute) {
       map.geoObjects.remove(currentRoute);
+      currentRoute = null;
     }
     
-    // Kuryerning rangini olish
-    const courierColor = getCourierColor(parseInt(selectedCourier));
-    
-    currentRoute = new ymaps.Polyline(
-      currentRouteCoords,
-      {},
-      {
-        strokeColor: courierColor,
-        strokeWidth: 4,
-        strokeOpacity: 0.7
-      }
-    );
-    
-    map.geoObjects.add(currentRoute);
+    // Kamida 2 nuqta bo'lganda chiziq chizish
+    if (currentRouteCoords.length >= 2) {
+      // Kuryerning rangini olish
+      const courierColor = getCourierColor(parseInt(selectedCourier));
+      
+      currentRoute = new ymaps.Polyline(
+        currentRouteCoords,
+        {
+          hintContent: `${currentRouteCoords.length} nuqta`
+        },
+        {
+          strokeColor: courierColor,
+          strokeWidth: 4,
+          strokeOpacity: 0.7
+        }
+      );
+      
+      map.geoObjects.add(currentRoute);
+    } else {
+      // Birinchi nuqta - faqat marker
+      const courierColor = getCourierColor(parseInt(selectedCourier));
+      const placemark = new ymaps.Placemark(coords, {}, {
+        preset: 'islands#dotIcon',
+        iconColor: courierColor
+      });
+      map.geoObjects.add(placemark);
+      setTimeout(() => map.geoObjects.remove(placemark), 30000);
+    }
     
     const statusDiv = document.getElementById('route-status');
     statusDiv.innerHTML = `📍 ${currentRouteCoords.length} nuqta tanlandi`;
@@ -682,6 +728,12 @@
     
     try {
       const courierColor = getCourierColor(parseInt(selectedCourier));
+      console.log('Saqlash:', {
+        courier_id: selectedCourier,
+        date: '{{ start_date|date:"Y-m-d" }}',
+        route_data: currentRouteCoords,
+        color: courierColor
+      });
       
       const response = await fetch('/orders/route/save/', {
         method: 'POST',
@@ -690,12 +742,18 @@
           'X-CSRFToken': getCookie('csrftoken')
         },
         body: JSON.stringify({
-          courier_id: selectedCourier,
+          courier_id: parseInt(selectedCourier),
           date: '{{ start_date|date:"Y-m-d" }}',
           route_data: currentRouteCoords,
           color: courierColor
         })
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server xatosi:', errorText);
+        throw new Error(`Server xatosi: ${response.status}`);
+      }
       
       const data = await response.json();
       
