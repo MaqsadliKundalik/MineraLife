@@ -477,10 +477,41 @@
 
   function renderMarkers(){
     map.geoObjects.removeAll();
-  allPlacemarks = []; // Qidiruv uchun barcha markerlarni tozalash
+    allPlacemarks = []; // Qidiruv uchun barcha markerlarni tozalash
 
-    const collection = new ymaps.GeoObjectCollection();
-    points.forEach(p=>{
+    // Clusterer yaratish - yaqin markerlarni guruhlash
+    const clusterer = new ymaps.Clusterer({
+      preset: 'islands#invertedOrangeClusterIcons',
+      groupByCoordinates: false,
+      clusterDisableClickZoom: false,
+      clusterHideIconOnBalloonOpen: false,
+      geoObjectHideIconOnBalloonOpen: false,
+      clusterBalloonContentLayout: 'cluster#balloonCarousel',
+      clusterBalloonPagerSize: 5,
+      clusterBalloonItemContentLayout: ymaps.templateLayoutFactory.createClass(
+        '<div style="padding: 8px;">' +
+          '<strong style="color: #4F46E5;">📋 {{ properties.clientName }}</strong><br>' +
+          '<div style="margin-top: 4px; font-size: 13px;">' +
+            '{% if properties.courierName %}<div>👤 {{ properties.courierName }}</div>{% else %}<div style="color:#dc2626">⚠️ Kuryer biriktirilmagan</div>{% endif %}' +
+            '<div>📊 {{ properties.statusText }}</div>' +
+            '<div>📅 {{ properties.dateText }}</div>' +
+            '<div>💰 {{ properties.priceText }}</div>' +
+          '</div>' +
+          '<div style="margin-top: 8px; display: flex; gap: 4px;">' +
+            '<button onclick="openAssignModal({{ properties.orderId }}, \'{{ properties.clientName }}\', {{ properties.courierId }})" ' +
+                    'style="padding: 4px 8px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; flex: 1;">' +
+              '{% if properties.courierName %}🔄 O\'zgartirish{% else %}➕ Biriktirish{% endif %}' +
+            '</button>' +
+            '<a href="/orders/{{ properties.orderId }}/" ' +
+               'style="padding: 4px 8px; background: #6b7280; color: white; border: none; border-radius: 4px; text-decoration: none; font-size: 11px;">' +
+              '👁️' +
+            '</a>' +
+          '</div>' +
+        '</div>'
+      )
+    });
+
+    const placemarks = points.map(p => {
       const preset = presetForStatus(p);
       const placemark = new ymaps.Placemark([p.lat, p.lon], {
         iconContent: esc(p.client),
@@ -504,7 +535,15 @@
               </a>
             </div>
           </div>
-        `
+        `,
+        // Cluster balloon uchun ma'lumotlar
+        clientName: p.client,
+        courierName: p.courier || '',
+        courierId: p.courier_id || 'null',
+        statusText: p.status,
+        dateText: p.date,
+        priceText: Number(p.price).toLocaleString() + ' so\'m',
+        orderId: p.id
       }, {
         preset,
         iconMaxWidth: 240
@@ -512,11 +551,13 @@
 
       // Qidiruv uchun saqlash
       allPlacemarks.push({ placemark, point: p });
-
-      collection.add(placemark);
+      
+      return placemark;
     });
 
-    map.geoObjects.add(collection);
+    // Clustererga markerlarni qo'shish
+    clusterer.add(placemarks);
+    map.geoObjects.add(clusterer);
     
     // Saqlangan marshrutlarni chizish
     loadSavedRoutes();
