@@ -141,7 +141,7 @@
         '</div>'
       ),
       clusterIconLayout: ymaps.templateLayoutFactory.createClass(
-        '<div class="cluster-icon" style="width: {{ properties.geoObjects.length > 99 ? 60 : 50 }}px; height: {{ properties.geoObjects.length > 99 ? 60 : 50 }}px;">' +
+        '<div class="cluster-icon" style="width: {% templatetag openvariable %} properties.geoObjects.length > 99 ? 60 : 50 {% templatetag closevariable %}px; height: {% templatetag openvariable %} properties.geoObjects.length > 99 ? 60 : 50 {% templatetag closevariable %}px;">' +
           '{{ properties.geoObjects.length }}' +
         '</div>'
       )
