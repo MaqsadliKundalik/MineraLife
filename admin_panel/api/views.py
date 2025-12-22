@@ -34,9 +34,9 @@ def get_client_orders(request):
             'error': 'Client nomi kamida 2 ta belgidan iborat bo\'lishi kerak'
         }, status=status.HTTP_400_BAD_REQUEST)
     
-    # Client qidirish (nom bo'yicha, case-insensitive)
+    # Client qidirish (nom bo'yicha, case-insensitive, faqat to'liq moslik)
     clients = Client.objects.filter(
-        Q(name__icontains=client_name)
+        Q(name__iexact=client_name)
     ).prefetch_related('phone_numbers')
     
     if not clients.exists():
