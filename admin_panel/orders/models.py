@@ -8,6 +8,7 @@ class Order(models.Model):
         ('card', 'Karta'),
         ('cash', 'Naqd'),
         ("perechesleniya", "Perechesleniya"),
+        ('debt', 'Qarz'),
     ]
 
     client = models.ForeignKey('clients.Client', on_delete=models.CASCADE, related_name='orders')

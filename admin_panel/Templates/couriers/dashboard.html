@@ -25,7 +25,7 @@
     </div>
 
     <!-- Statistik bloklar - yangi dizayn -->
-    <div class="grid grid-cols-3 gap-2 sm:gap-4">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
         <div class="bg-gradient-to-r from-green-500 to-green-600 p-2 sm:p-4 rounded-lg text-white shadow">
             <div class="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
                 <div class="text-center sm:text-left">
@@ -67,6 +67,31 @@
                 </div>
             </div>
         </div>
+
+        <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-2 sm:p-4 rounded-lg text-white shadow">
+            <div class="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between">
+                <div class="text-center sm:text-left">
+                    <p class="text-orange-100 text-[9px] sm:text-xs">Qarz</p>
+                    <p class="text-xs sm:text-lg font-bold">{{ debt_total|floatformat:0 }}</p>
+                </div>
+                <div class="hidden sm:block p-2 bg-orange-400 bg-opacity-30 rounded-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kunlik tushum tugmasi -->
+    <div class="flex justify-center">
+        <button onclick="openIncomeModal()" 
+                class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg shadow-lg hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Kunlik Tushum
+        </button>
     </div>
 
     <!-- Buyurtmalar ro'yxati -->
@@ -264,6 +289,119 @@
     </div>
 </div>
 
+<!-- Kunlik Tushum Modali -->
+<div id="income-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-xl">
+                <div class="flex items-center justify-between">
+                    <div class="text-white">
+                        <h3 class="text-xl font-bold">📊 Kunlik Tushum</h3>
+                        <p class="text-sm text-indigo-100 mt-1">{{ today }}</p>
+                    </div>
+                    <button onclick="closeIncomeModal()" class="text-white hover:text-gray-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Content -->
+            <div class="px-6 py-6">
+                <!-- To'lov turlari statistikasi -->
+                <div class="space-y-4">
+                    <!-- Naqd -->
+                    <div class="flex items-center justify-between p-4 bg-green-50 dark:bg-green-900 rounded-lg border border-green-200 dark:border-green-700">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-green-500 rounded-full">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Naqd pul</p>
+                                <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ cash_total|floatformat:0 }} so'm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Karta -->
+                    <div class="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-blue-500 rounded-full">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Karta</p>
+                                <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ card_total|floatformat:0 }} so'm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Perechisleniya -->
+                    <div class="flex items-center justify-between p-4 bg-purple-50 dark:bg-purple-900 rounded-lg border border-purple-200 dark:border-purple-700">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-purple-500 rounded-full">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Perechisleniya</p>
+                                <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ perechesleniya_total|floatformat:0 }} so'm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Qarz -->
+                    <div class="flex items-center justify-between p-4 bg-orange-50 dark:bg-orange-900 rounded-lg border border-orange-200 dark:border-orange-700">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-orange-500 rounded-full">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Qarz</p>
+                                <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ debt_total|floatformat:0 }} so'm</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Umumiy tushum -->
+                    <div class="mt-6 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900 dark:to-purple-900 rounded-lg border-2 border-indigo-300 dark:border-indigo-600">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Jami tushum</p>
+                                <p class="text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                                    {% widthratio cash_total 1 1|add:card_total|add:perechesleniya_total|add:debt_total|floatformat:0 %} so'm
+                                </p>
+                            </div>
+                            <div class="p-4 bg-indigo-600 rounded-full">
+                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Yopish tugmasi -->
+                <div class="mt-6">
+                    <button onclick="closeIncomeModal()" 
+                            class="w-full px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105">
+                        Yopish
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let currentOrderPrice = 0;
 
@@ -293,6 +431,14 @@ function updatePrice() {
     document.getElementById('price-calculation').textContent = `${quantity} x ${currentOrderPrice.toLocaleString()} = ${total.toLocaleString()}`;
 }
 
+function openIncomeModal() {
+    document.getElementById('income-modal').classList.remove('hidden');
+}
+
+function closeIncomeModal() {
+    document.getElementById('income-modal').classList.add('hidden');
+}
+
 function confirmCancel(orderId) {
     if (confirm('Buyurtmani bekor qilishni tasdiqlaysizmi?')) {
         const form = document.createElement('form');
@@ -311,10 +457,16 @@ function confirmCancel(orderId) {
     }
 }
 
-// Modal tashqarisini bosish bilan yopish
+// Modallarni tashqarisini bosish bilan yopish
 document.getElementById('complete-modal').addEventListener('click', function(e) {
     if (e.target === this) {
         closeCompleteModal();
+    }
+});
+
+document.getElementById('income-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeIncomeModal();
     }
 });
 
@@ -322,6 +474,7 @@ document.getElementById('complete-modal').addEventListener('click', function(e) 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
         closeCompleteModal();
+        closeIncomeModal();
     }
 });
 </script>
