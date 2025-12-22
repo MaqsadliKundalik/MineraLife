@@ -3,45 +3,54 @@ from django import forms
 from .models import CourierRoute
 
 
+# Rang tanlovlari
+COLOR_CHOICES = [
+    ('#2563eb', '🔵 Ko\'k (Standart)'),
+    ('#dc2626', '🔴 Qizil'),
+    ('#16a34a', '🟢 Yashil'),
+    ('#ca8a04', '🟡 Sariq'),
+    ('#9333ea', '🟣 Binafsha'),
+    ('#ea580c', '🟠 To\'q sariq'),
+    ('#0891b2', '🔵 Moviy'),
+    ('#e11d48', '🌸 Pushti'),
+]
+
+
 class CourierRouteAdminForm(forms.ModelForm):
     """Rang tanlash uchun maxsus form"""
-    COLOR_CHOICES = [
-        ('#2563eb', '🔵 Ko\'k (Standart)'),
-        ('#dc2626', '🔴 Qizil'),
-        ('#16a34a', '🟢 Yashil'),
-        ('#ca8a04', '🟡 Sariq'),
-        ('#9333ea', '🟣 Binafsha'),
-        ('#ea580c', '🟠 To\'q sariq'),
-        ('#0891b2', '🔵 Moviy'),
-        ('#e11d48', '🌸 Pushti'),
-    ]
-    
-    color = forms.ChoiceField(
-        choices=COLOR_CHOICES,
-        widget=forms.Select(attrs={'class': 'color-select'}),
-        label="Marshrut rangi",
-        help_text="Xaritada marshrutning rangini tanlang"
-    )
     
     class Meta:
         model = CourierRoute
         fields = '__all__'
         widgets = {
-            'route_data': forms.Textarea(attrs={
-                'rows': 4,
-                'placeholder': 'Marshrut koordinatalari JSON formatda: [[lat1, lon1], [lat2, lon2], ...]',
-                'class': 'vLargeTextField'
+            'color': forms.Select(choices=COLOR_CHOICES, attrs={
+                'style': 'width: 250px; font-size: 14px;'
             }),
+            'route_data': forms.Textarea(attrs={
+                'rows': 6,
+                'placeholder': 'Marshrut koordinatalari JSON formatda: [[lat1, lon1], [lat2, lon2], ...]',
+                'class': 'vLargeTextField',
+                'style': 'font-family: monospace;'
+            }),
+        }
+        labels = {
+            'color': 'Marshrut rangi',
+            'route_data': 'Marshrut koordinatalari',
+        }
+        help_texts = {
+            'color': 'Xaritada ko\'rsatiladigan marshrut chizig\'ining rangi',
+            'route_data': 'JSON format: [[41.2995, 69.2401], [41.3111, 69.2797], ...]',
         }
 
 
 @admin.register(CourierRoute)
 class CourierRouteAdmin(admin.ModelAdmin):
     form = CourierRouteAdminForm
-    list_display = ('courier', 'date', 'color_preview', 'created_at', 'updated_at')
+    list_display = ('courier', 'date', 'color_badge', 'route_points_count', 'created_at')
     list_filter = ('date', 'courier')
-    search_fields = ('courier__username',)
+    search_fields = ('courier__username', 'courier__first_name', 'courier__last_name')
     date_hierarchy = 'date'
+    readonly_fields = ('created_at', 'updated_at')
     
     fieldsets = (
         ('Asosiy ma\'lumotlar', {
@@ -49,18 +58,32 @@ class CourierRouteAdmin(admin.ModelAdmin):
         }),
         ('Marshrut', {
             'fields': ('route_data',),
-            'description': 'Marshrut koordinatalari JSON formatda kiritiladi. Misol: [[41.2995, 69.2401], [41.3111, 69.2797]]'
+            'description': 'Marshrut koordinatalarini JSON formatda kiriting. Har bir nuqta [latitude, longitude] formatida bo\'lishi kerak.'
+        }),
+        ('Qo\'shimcha ma\'lumotlar', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
         }),
     )
     
-    def color_preview(self, obj):
-        """Rangni ko'rsatish"""
-        return f'<div style="width: 30px; height: 20px; background-color: {obj.color}; border: 1px solid #ccc; border-radius: 3px;"></div>'
-    color_preview.short_description = 'Rang'
-    color_preview.allow_tags = True
+    def color_badge(self, obj):
+        """Rangni badge ko'rinishida ko'rsatish"""
+        from django.utils.html import format_html
+        # Rang nomini topish
+        color_name = dict(COLOR_CHOICES).get(obj.color, 'Boshqa')
+        return format_html(
+            '<span style="display: inline-flex; align-items: center; gap: 8px;">'
+            '<span style="width: 40px; height: 24px; background-color: {}; border: 2px solid #ddd; border-radius: 4px; display: inline-block;"></span>'
+            '<span style="font-size: 13px;">{}</span>'
+            '</span>',
+            obj.color,
+            color_name
+        )
+    color_badge.short_description = 'Rang'
     
-    class Media:
-        css = {
-            'all': ('admin/css/courier_route.css',)
-        }
-        js = ('admin/js/courier_route.js',)
+    def route_points_count(self, obj):
+        """Marshrut nuqtalari soni"""
+        if obj.route_data and isinstance(obj.route_data, list):
+            return f'{len(obj.route_data)} nuqta'
+        return '—'
+    route_points_count.short_description = 'Nuqtalar'
