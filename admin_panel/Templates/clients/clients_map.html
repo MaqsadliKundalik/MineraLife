@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Mijozlar xaritasi{% endblock %}
+
+{% block extra_head %}
+  <!-- Yandex Maps API -->
+  <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+  <style>
+    #clients-map { height: calc(100vh - 100px); border-radius: .5rem; overflow: hidden; }
+
+    /* Ustki harakat tugmalari */
+    .ml-actions{ position:absolute; right:.5rem; top:.5rem; display:flex; flex-direction:column; gap:.3rem; z-index:30; }
+    .ml-action-btn{ padding:.4rem .6rem; border-radius:.4rem; background: rgba(255,255,255,.95);
+      box-shadow: 0 2px 10px rgba(0,0,0,.15); font-size: 12px; font-weight: 500; }
+    .dark .ml-action-btn{ background: rgba(17,24,39,.9); color:#E5E7EB; }
+    
+    /* Back button */
+    .map-back-btn{ position:absolute; left:.5rem; top:.5rem; z-index:30; }
+    
+    /* Info panel */
+    .info-panel{ position:absolute; left:.5rem; bottom:.5rem; z-index:30; background: rgba(255,255,255,.95);
+      padding:.6rem 1rem; border-radius:.5rem; box-shadow: 0 2px 10px rgba(0,0,0,.15); font-size: 14px; }
+    .dark .info-panel{ background: rgba(17,24,39,.9); color:#E5E7EB; }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="h-full">
+  <!-- Xarita -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2">
+    <div class="relative">
+      <div id="clients-map"></div>
+      
+      <!-- Back button -->
+      <a href="{% url 'clients:list' %}" class="map-back-btn ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors inline-flex items-center">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Orqaga
+      </a>
+      
+      <!-- Info panel -->
+      <div class="info-panel">
+        <span class="font-semibold">📍 Jami mijozlar:</span> <span id="total-count">{{ total_clients }}</span>
+      </div>
+      
+      <!-- Xarita boshqaruv tugmalari -->
+      <div class="ml-actions">
+        <button id="ml-fit" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          Moslashtirish
+        </button>
+        
+        <button id="ml-fs" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          To'liq ekran
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Data
+  const points = JSON.parse('{{ points|escapejs }}');
+  const center = points.length ? [points.reduce((s,p) => s + p.lat, 0) / points.length, 
+                                  points.reduce((s,p) => s + p.lon, 0) / points.length] : [41.2995, 69.2401];
+
+  function esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // Mijoz sahifasiga o'tish
+  function goToClient(clientId) {
+    window.location.href = `/clients/${clientId}/`;
+  }
+
+  // Yandex xarita
+  ymaps.ready(init);
+  let map;
+
+  function init(){
+    map = new ymaps.Map("clients-map", {
+      center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
+    });
+
+    // Mobil UX: scroll zoom ni o'chirish
+    map.behaviors.disable('scrollZoom');
+
+    // Markerlar - hamma mijozlar
+    const placemarks = points.map(p => {
+      // Mijoz nomining qisqa versiyasi
+      const shortName = p.name.split(' ')[0]; // Faqat birinchi so'z
+      
+      return new ymaps.Placemark([p.lat, p.lon], {
+        iconContent: esc(shortName),
+        balloonContent: `
+          <div style="max-width: 250px;">
+            <strong>👤 ${esc(p.name)}</strong><br>
+            ${p.phone ? `📞 ${esc(p.phone)}<br>` : ''}
+            ${p.caption ? `📍 ${esc(p.caption)}<br>` : ''}
+            <div style="margin-top: 8px;">
+              <button onclick="goToClient(${p.id})" 
+                      style="padding: 6px 12px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                👁️ Ko'rish
+              </button>
+            </div>
+          </div>
+        `
+      }, {
+        preset: 'islands#blueStretchyIcon',
+        iconMaxWidth: 200
+      });
+    });
+
+    // Markerlarni xaritaga qo'shish
+    placemarks.forEach(pm => map.geoObjects.add(pm));
+    
+    recenter();
+
+    // Tugmalar
+    document.getElementById('ml-fit').addEventListener('click', recenter);
+
+    const fsBtn = document.getElementById('ml-fs');
+    const mapEl = document.getElementById('clients-map');
+    fsBtn.addEventListener('click', async ()=>{
+      if(!document.fullscreenElement){
+        await mapEl.requestFullscreen?.();
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Chiqish';
+      } else {
+        await document.exitFullscreen?.();
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>To\'liq ekran';
+      }
+      setTimeout(()=> map.container.fitToViewport(), 200);
+    });
+    document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
+  }
+
+  function recenter(){
+    const bounds = map.geoObjects.getBounds();
+    if(bounds) map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 30});
+    else map.setCenter(center, 11);
+  }
+</script>
+{% endblock %}

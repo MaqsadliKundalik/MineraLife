@@ -9,6 +9,9 @@ from admin_panel.mixins import SuperuserRequiredMixin
 from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+import json
 
 class ClientListView(SuperuserRequiredMixin, ListView):
     model = Client
@@ -129,3 +132,26 @@ def check_name_exists(request):
     exists = query.exists()
     
     return JsonResponse({'exists': exists, 'name': name})
+
+
+@login_required
+def clients_map(request):
+    """Barcha mijozlarni xaritada ko'rsatish"""
+    clients = Client.objects.filter(
+        latitude__isnull=False,
+        longitude__isnull=False
+    ).prefetch_related('phone_numbers')
+    
+    points = [{
+        "id": c.id,
+        "name": c.name,
+        "phone": c.get_phone_numbers_display(),
+        "caption": c.caption or "",
+        "lat": c.latitude,
+        "lon": c.longitude,
+    } for c in clients]
+    
+    return render(request, "clients/clients_map.html", {
+        "points": json.dumps(points),
+        "total_clients": clients.count(),
+    })
