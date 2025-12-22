@@ -89,7 +89,7 @@
                                   points.reduce((s,p) => s + p.lon, 0) / points.length] : [41.2995, 69.2401];
 
   function presetForStatus(p){
-    const raw = (p.status||'').toLowerCase();
+    const raw = (p.status_raw || p.status || '').toLowerCase();
     if (raw.includes('completed') || raw.includes('bajari')) return 'islands#greenStretchyIcon';
     if (raw.includes('cancelled') || raw.includes('bekor'))  return 'islands#redStretchyIcon';
     return 'islands#blueStretchyIcon';

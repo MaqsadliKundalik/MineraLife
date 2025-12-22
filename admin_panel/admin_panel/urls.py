@@ -22,6 +22,7 @@ from .views import admin_welcome, dashboard_redirect
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('api.urls')),
     path('products/', include('products.urls'), name='products'),
     path('clients/', include('clients.urls'), name='clients'),
     path('orders/', include('orders.urls'), name='orders'),
