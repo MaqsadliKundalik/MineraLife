@@ -15,25 +15,6 @@
     
     /* Back button */
     .map-back-btn{ position:absolute; left:.5rem; top:.5rem; z-index:30; }
-    
-    /* Cluster uslublari */
-    .cluster-icon {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      font-weight: bold;
-      font-size: 14px;
-      border-radius: 50%;
-      border: 3px solid white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    
-    .cluster-icon:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
-    }
   </style>
 {% endblock %}
 
@@ -104,50 +85,17 @@
 
   // Yandex xarita
   ymaps.ready(init);
-  let map, clusterer;
+  let map;
 
   function init(){
     map = new ymaps.Map("courier-map", {
-      center: center, zoom: 11, controls: ["zoomControl", "fullscreenControl"]
+      center: center, zoom: 13, controls: ["zoomControl", "fullscreenControl"]
     });
 
     // Mobil UX: scroll zoom ni o'chirish
     map.behaviors.disable('scrollZoom');
 
-    // Clusterer yaratish - yaqin markerlarni guruhlash
-    clusterer = new ymaps.Clusterer({
-      preset: 'islands#invertedVioletClusterIcons',
-      groupByCoordinates: false,
-      clusterDisableClickZoom: false,
-      clusterHideIconOnBalloonOpen: false,
-      geoObjectHideIconOnBalloonOpen: false,
-      clusterBalloonContentLayout: 'cluster#balloonCarousel',
-      clusterBalloonPagerSize: 5,
-      clusterBalloonItemContentLayout: ymaps.templateLayoutFactory.createClass(
-        '<div style="padding: 8px;">' +
-          '<strong style="color: #4F46E5;">📋 {{ properties.client }}</strong><br>' +
-          '<div style="margin-top: 4px; font-size: 13px;">' +
-            '{% if properties.phone %}<div>📞 {{ properties.phone }}</div>{% endif %}' +
-            '<div>💰 {{ properties.inquantity }} oldim, {{ properties.outquantity }} berdim</div>' +
-            '<div>💳 {{ properties.payment }}</div>' +
-            '{% if properties.caption %}<div>📍 {{ properties.caption }}</div>{% endif %}' +
-          '</div>' +
-          '<div style="margin-top: 8px;">' +
-            '<button onclick="goToEdit({{ properties.orderId }})" ' +
-                    'style="padding: 6px 12px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">' +
-              '📝 Tahrirlash' +
-            '</button>' +
-          '</div>' +
-        '</div>'
-      ),
-      clusterIconLayout: ymaps.templateLayoutFactory.createClass(
-        '<div class="cluster-icon" style="width: {% templatetag openvariable %} properties.geoObjects.length > 99 ? 60 : 50 {% templatetag closevariable %}px; height: {% templatetag openvariable %} properties.geoObjects.length > 99 ? 60 : 50 {% templatetag closevariable %}px;">' +
-          '{{ properties.geoObjects.length }}' +
-        '</div>'
-      )
-    });
-
-    // Markerlar
+    // Markerlar - to'g'ridan-to'g'ri xaritaga qo'shish (clustering yo'q)
     const placemarks = points.map(p => {
       // Mijoz nomining qisqa versiyasi
       const shortName = p.client.split(' ')[0]; // Faqat birinchi so'z
@@ -169,24 +117,15 @@
               </button>
             </div>
           </div>
-        `,
-        // Cluster balloon uchun ma'lumotlar
-        client: p.client,
-        phone: p.phone,
-        inquantity: p.inquantity,
-        outquantity: p.outquantity,
-        payment: p.payment,
-        caption: p.caption,
-        orderId: p.id
+        `
       }, {
         preset: presetForStatus(p),
         iconMaxWidth: 200
       });
     });
 
-    // Clustererga markerlarni qo'shish
-    clusterer.add(placemarks);
-    map.geoObjects.add(clusterer);
+    // Markerlarni to'g'ridan-to'g'ri xaritaga qo'shish
+    placemarks.forEach(pm => map.geoObjects.add(pm));
     
     // Admin tomonidan belgilangan marshrutni ko'rsatish
     if (route && route.route_data && route.route_data.length >= 2) {
