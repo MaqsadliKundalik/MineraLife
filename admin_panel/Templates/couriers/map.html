@@ -204,7 +204,10 @@
       map.geoObjects.add(routeLine);
     }
     
-    recenter();
+    // Markerlar qo'shilgandan keyin xaritani moslashtirish
+    setTimeout(() => {
+      recenter();
+    }, 100);
 
     // Tugmalar
     document.getElementById('ml-fit').addEventListener('click', recenter);
