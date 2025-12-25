@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block title %}Mijozlar xaritasi{% endblock %}
+
+{% block extra_head %}
+  <!-- Yandex Maps API -->
+  {% if yandex_maps_api_key %}
+    <script src="https://api-maps.yandex.ru/2.1/?apikey={{ yandex_maps_api_key }}&lang=ru_RU" type="text/javascript"></script>
+  {% endif %}
+  
+  <style>
+    #clients-map { 
+      height: calc(100vh - 140px); 
+      border-radius: .5rem; 
+      overflow: hidden; 
+    }
+
+    /* Ustki harakat tugmalari */
+    .ml-actions{ 
+      position:absolute; 
+      right:.5rem; 
+      top:.5rem; 
+      display:flex; 
+      flex-direction:column; 
+      gap:.3rem; 
+      z-index:30; 
+    }
+    .ml-action-btn{ 
+      padding:.4rem .6rem; 
+      border-radius:.4rem; 
+      background: rgba(255,255,255,.95);
+      box-shadow: 0 2px 10px rgba(0,0,0,.15); 
+      font-size: 12px; 
+      font-weight: 500; 
+    }
+    .dark .ml-action-btn{ 
+      background: rgba(17,24,39,.9); 
+      color:#E5E7EB; 
+    }
+    
+    /* Back button */
+    .map-back-btn{ 
+      position:absolute; 
+      left:.5rem; 
+      top:.5rem; 
+      z-index:30; 
+    }
+    
+    /* Statistika paneli */
+    .stats-panel {
+      background: rgba(255,255,255,.95);
+      backdrop-filter: blur(10px);
+      border-radius: .5rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,.1);
+    }
+    .dark .stats-panel {
+      background: rgba(17,24,39,.9);
+    }
+    
+    /* Filter tugmalari */
+    .filter-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: 1px solid #d1d5db;
+      background: white;
+      color: #374151;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover {
+      background: #f3f4f6;
+    }
+    .filter-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    .dark .filter-btn {
+      background: #374151;
+      color: #e5e7eb;
+      border-color: #4b5563;
+    }
+    .dark .filter-btn:hover {
+      background: #4b5563;
+    }
+    .dark .filter-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
+    
+    /* Legend */
+    .legend {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      font-size: 0.875rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="h-full">
+  <!-- Statistika va Filterlar -->
+  <div class="stats-panel p-3 mb-3">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+        📍 Barcha mijozlar xaritasi
+      </h2>
+      <span class="text-sm text-gray-600 dark:text-gray-400">
+        Jami: <strong class="text-blue-600 dark:text-blue-400">{{ total_clients }}</strong> ta mijoz
+      </span>
+    </div>
+    
+    <!-- Filter tugmalari -->
+    <div class="flex flex-col sm:flex-row gap-2 mb-3">
+      <span class="text-sm font-medium text-gray-700 dark:text-gray-300 self-center">
+        Oxirgi buyurtma:
+      </span>
+      <div class="flex flex-wrap gap-2">
+        <button class="filter-btn" data-period="all">Hammasi</button>
+        <button class="filter-btn active" data-period="1">1 oy</button>
+        <button class="filter-btn" data-period="3">3 oy</button>
+        <button class="filter-btn" data-period="6">6 oy</button>
+      </div>
+    </div>
+    
+    <!-- Legend (ranglar izohi) -->
+    <div class="legend text-gray-600 dark:text-gray-400">
+      <div class="legend-item">
+        <div class="legend-color" style="background: #10b981;"></div>
+        <span>Faol</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #ef4444;"></div>
+        <span>Nofaol</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: #6b7280;"></div>
+        <span>Buyurtma yo'q</span>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Xarita -->
+  <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-2">
+    <div class="relative">
+      <div id="clients-map" class="bg-gray-200 dark:bg-gray-700"></div>
+      
+      {% if not yandex_maps_api_key %}
+      <div class="absolute inset-0 grid place-items-center p-6">
+        <div class="max-w-md w-full rounded-xl bg-white/90 dark:bg-gray-800/90 shadow-xl border border-gray-200 dark:border-gray-700 p-5 text-center">
+          <div class="text-lg font-semibold mb-2">Yandex Maps API kaliti kerak</div>
+          <div class="text-sm opacity-80 mb-4">Xaritani ko'rsatish uchun Yandex Maps API kalitini sozlang. Sozlangandan so'ng sahifani yangilang.</div>
+          <div class="text-xs text-gray-500">ENV: YANDEX_MAPS_API_KEY</div>
+        </div>
+      </div>
+      {% endif %}
+      
+      <!-- Back button -->
+      <a href="{% url 'clients:list' %}" class="map-back-btn ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors inline-flex items-center">
+        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Orqaga
+      </a>
+      
+      <!-- Xarita boshqaruv tugmalari -->
+      <div class="ml-actions">
+        <button id="ml-fit" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          Moslashtirish
+        </button>
+        
+        <button id="ml-fs" class="ml-action-btn text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+          <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+          </svg>
+          To'liq ekran
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Data
+  const points = JSON.parse('{{ points|escapejs }}');
+  let currentPeriod = 1; // Default: 1 oy
+  
+  const center = points.length ? 
+    [points.reduce((s,p) => s + p.lat, 0) / points.length, 
+     points.reduce((s,p) => s + p.lon, 0) / points.length] : 
+    [41.2995, 69.2401]; // Toshkent markazi
+
+  function esc(s){ 
+    return String(s||'').replace(/[&<>"']/g, m => ({
+      '&':'&amp;',
+      '<':'&lt;',
+      '>':'&gt;',
+      '"':'&quot;',
+      "'":'&#39;'
+    }[m])); 
+  }
+  
+  // Necha kun oldin buyurtma bergani
+  function getDaysSinceLastOrder(lastOrderDate) {
+    if (!lastOrderDate) return null;
+    const now = new Date();
+    const orderDate = new Date(lastOrderDate);
+    const diffTime = Math.abs(now - orderDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+  
+  // Mijoz rangini aniqlash
+  function getClientColor(point, periodMonths) {
+    if (!point.last_order_date) {
+      return 'gray'; // Hech qachon buyurtma bermagan
+    }
+    
+    const daysSince = getDaysSinceLastOrder(point.last_order_date);
+    const thresholdDays = periodMonths === 'all' ? Infinity : periodMonths * 30;
+    
+    if (daysSince > thresholdDays) {
+      return 'red'; // Nofaol (ko'p vaqt o'tgan)
+    } else {
+      return 'green'; // Faol (yaqinda buyurtma bergan)
+    }
+  }
+  
+  // Preset aniqlash
+  function getPreset(color) {
+    if (color === 'red') return 'islands#redStretchyIcon';
+    if (color === 'green') return 'islands#greenStretchyIcon';
+    return 'islands#grayStretchyIcon';
+  }
+  
+  // Oxirgi buyurtma sanasini formatlash
+  function formatLastOrderDate(lastOrderDate) {
+    if (!lastOrderDate) return 'Hech qachon buyurtma bermagan';
+    
+    const date = new Date(lastOrderDate);
+    const daysSince = getDaysSinceLastOrder(lastOrderDate);
+    
+    const formatted = date.toLocaleDateString('uz-UZ', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+    
+    return `${formatted} (${daysSince} kun oldin)`;
+  }
+
+  // Mijoz detailga o'tish
+  function goToClient(clientId) {
+    window.location.href = `/clients/${clientId}/`;
+  }
+
+  // Yandex xarita
+  {% if yandex_maps_api_key %}
+  ymaps.ready(init);
+  let map;
+  let placemarkObjects = [];
+
+  function init(){
+    map = new ymaps.Map("clients-map", {
+      center: center, 
+      zoom: 12, 
+      controls: ["zoomControl", "fullscreenControl"]
+    });
+
+    // Mobil UX: scroll zoom ni o'chirish
+    map.behaviors.disable('scrollZoom');
+
+    // Markerlarni yaratish
+    updateMarkers();
+    
+    // Filter tugmalariga event listener qo'shish
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        // Active klassni o'zgartirish
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Period'ni yangilash
+        const period = this.dataset.period;
+        currentPeriod = period === 'all' ? 'all' : parseInt(period);
+        
+        // Markerlarni yangilash
+        updateMarkers();
+      });
+    });
+    
+    // Markerlar qo'shilgandan keyin xaritani moslashtirish
+    setTimeout(() => {
+      recenter();
+    }, 100);
+
+    // Tugmalar
+    document.getElementById('ml-fit').addEventListener('click', recenter);
+
+    const fsBtn = document.getElementById('ml-fs');
+    const mapEl = document.getElementById('clients-map');
+    fsBtn.addEventListener('click', async ()=>{
+      if(!document.fullscreenElement){
+        await mapEl.requestFullscreen?.();
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Chiqish';
+      } else {
+        await document.exitFullscreen?.();
+        fsBtn.innerHTML = '<svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>To\'liq ekran';
+      }
+      setTimeout(()=> map.container.fitToViewport(), 200);
+    });
+    document.addEventListener('fullscreenchange', ()=> setTimeout(()=> map.container.fitToViewport(), 150));
+  }
+  
+  function updateMarkers() {
+    // Eski markerlarni o'chirish
+    placemarkObjects.forEach(pm => map.geoObjects.remove(pm));
+    placemarkObjects = [];
+    
+    // Yangi markerlarni yaratish
+    points.forEach(p => {
+      const color = getClientColor(p, currentPeriod);
+      const shortName = p.name.split(' ')[0]; // Faqat birinchi so'z
+      
+      const placemark = new ymaps.Placemark([p.lat, p.lon], {
+        iconContent: esc(shortName),
+        balloonContent: `
+          <div style="max-width: 280px; padding: 4px;">
+            <div style="font-size: 14px; font-weight: 600; margin-bottom: 8px;">
+              👤 ${esc(p.name)}
+            </div>
+            ${p.phone ? `
+              <div style="margin-bottom: 4px; font-size: 13px;">
+                📞 ${esc(p.phone)}
+              </div>
+            ` : ''}
+            ${p.caption ? `
+              <div style="margin-bottom: 4px; font-size: 13px; color: #666;">
+                📍 ${esc(p.caption)}
+              </div>
+            ` : ''}
+            <div style="margin-bottom: 8px; font-size: 13px; color: ${color === 'red' ? '#ef4444' : color === 'green' ? '#10b981' : '#6b7280'}; font-weight: 500;">
+              📅 ${formatLastOrderDate(p.last_order_date)}
+            </div>
+            <div style="margin-top: 10px; border-top: 1px solid #e5e7eb; padding-top: 8px;">
+              <button onclick="goToClient(${p.id})" 
+                      style="padding: 6px 14px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; width: 100%;">
+                📋 Batafsil ko'rish
+              </button>
+            </div>
+          </div>
+        `
+      }, {
+        preset: getPreset(color),
+        iconMaxWidth: 200
+      });
+      
+      map.geoObjects.add(placemark);
+      placemarkObjects.push(placemark);
+    });
+  }
+
+  function recenter(){
+    const bounds = map.geoObjects.getBounds();
+    if(bounds) {
+      map.setBounds(bounds, {checkZoomRange: true, zoomMargin: 50});
+    } else {
+      map.setCenter(center, 12);
+    }
+  }
+  {% endif %}
+</script>
+{% endblock %}

@@ -11,6 +11,9 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
+from django.conf import settings
+from django.db.models import Max
+from django.utils import timezone
 import json
 
 class ClientListView(SuperuserRequiredMixin, ListView):
@@ -137,10 +140,13 @@ def check_name_exists(request):
 @login_required
 def clients_map(request):
     """Barcha mijozlarni xaritada ko'rsatish"""
+    # Oxirgi buyurtma sanasini annotate qilish
     clients = Client.objects.filter(
         latitude__isnull=False,
         longitude__isnull=False
-    ).prefetch_related('phone_numbers')
+    ).prefetch_related('phone_numbers').annotate(
+        last_order_date=Max('orders__effective_date')
+    )
     
     points = [{
         "id": c.id,
@@ -149,9 +155,11 @@ def clients_map(request):
         "caption": c.caption or "",
         "lat": c.latitude,
         "lon": c.longitude,
+        "last_order_date": c.last_order_date.isoformat() if c.last_order_date else None,
     } for c in clients]
     
     return render(request, "clients/clients_map.html", {
         "points": json.dumps(points),
         "total_clients": clients.count(),
+        "yandex_maps_api_key": settings.YANDEX_MAPS_API_KEY,
     })
