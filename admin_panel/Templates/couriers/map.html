@@ -106,14 +106,13 @@
           <div style="max-width: 250px;">
             <strong>📋 ${esc(p.client)}</strong><br>
             ${p.phone ? `📞 ${esc(p.phone)}<br>` : ''}
-            📅 ${esc(p.date)}<br>
             💰 ${p.inquantity} oldim, ${p.outquantity} berdim<br>
-            💳 ${esc(p.payment)}<br>
             ${p.caption ? `📍 ${esc(p.caption)}<br>` : ''}
+            ${p.notes ? `📝 ${esc(p.notes)}<br>` : ''}
             <div style="margin-top: 8px;">
               <button onclick="goToEdit(${p.id})" 
                       style="padding: 6px 12px; background: #4F46E5; color: white; border: none; border-radius: 6px; cursor: pointer;">
-                📝 Tahrirlash
+                Tahrirlash
               </button>
             </div>
           </div>

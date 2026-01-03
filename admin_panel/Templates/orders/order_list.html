@@ -271,9 +271,8 @@
         balloonContent: `
           <strong>Mijoz:</strong> ${esc(p.client)}<br>
           <strong>Status:</strong> ${esc(p.status)}<br>
-          <strong>Sana:</strong> ${esc(p.date)}<br>
           <strong>Narx:</strong> ${Number(p.price).toLocaleString()} so'm<br>
-          ${p.payment ? `<strong>To‘lov:</strong> ${esc(p.payment)}` : ''}
+          ${p.notes ? `<strong>Izoh:</strong> ${esc(p.notes)}<br>` : ''}
         `
       }, {
         preset,

@@ -132,7 +132,7 @@ class OrderListView(SuperuserRequiredMixin, ListView):
                 "lon": o.client.longitude,
                 "status": o.get_status_display(),
                 "price": float(o.get_total_price()),
-                "date": o.effective_date.isoformat(),
+                "notes": o.notes or "",
             }
             for o in map_qs
         ]
@@ -238,7 +238,7 @@ class OrdersMapView(SuperuserRequiredMixin, TemplateView):
                 "courier_id": o.courier_id,
                 "inquantity": o.inquantity,
                 "outquantity": o.outquantity,
-                "payment_method": o.get_payment_method_display(),
+                "notes": o.notes or "",
                 "address": o.client.caption or "",
             }
             for o in qs
