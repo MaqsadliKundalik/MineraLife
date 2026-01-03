@@ -2,128 +2,192 @@
 {% load querystring humanize %}
 {% block title %}Hisobotlar{% endblock %}
 
+{% block extra_head %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  .stat-card {
+    @apply bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 transition hover:shadow-md;
+  }
+  .metric-value {
+    @apply text-2xl font-bold text-gray-900 dark:text-white;
+  }
+  .metric-label {
+    @apply text-sm text-gray-600 dark:text-gray-400;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-6xl mx-auto space-y-6 px-4">
+<div class="max-w-7xl mx-auto space-y-6 px-4 py-6">
 
   <!-- Title -->
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Hisobotlar</h1>
-    <span class="hidden sm:inline-block text-xs px-2 py-1 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-      {{ start_date|date:"Y-m-d" }} — {{ end_date|date:"Y-m-d" }}
+    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">📊 Hisobotlar</h1>
+    <span class="hidden sm:inline-block text-xs px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
+      {{ start_date|date:"d.m.Y" }} — {{ end_date|date:"d.m.Y" }}
     </span>
   </div>
 
   <!-- Filters -->
   <form method="get"
-        class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-4 sm:p-5">
+        class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-5">
     <div class="flex flex-col sm:flex-row sm:items-end gap-3">
       <div class="w-full sm:w-auto">
-        <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Boshlanish sanasi</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Boshlanish sanasi</label>
         <input type="date" name="start" value="{{ start_date|date:'Y-m-d' }}"
                class="w-full sm:w-56 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900
-                      text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                      text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
       </div>
       <div class="w-full sm:w-auto">
-        <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Tugash sanasi</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Tugash sanasi</label>
         <input type="date" name="end" value="{{ end_date|date:'Y-m-d' }}"
                class="w-full sm:w-56 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900
-                      text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                      text-gray-900 dark:text-gray-100 px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none text-sm">
       </div>
 
-      <button class="w-full sm:w-auto px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow">
-        Filter
+      <button type="submit" class="w-full sm:w-auto px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition shadow-sm font-medium text-sm">
+        🔍 Qo'llash
       </button>
 
       <!-- Quick buttons -->
-      <div class="flex gap-2 sm:ml-auto w-full sm:w-auto">
+      <div class="flex gap-2 sm:ml-auto w-full sm:w-auto flex-wrap sm:flex-nowrap">
         <a href="?quick=month"
-           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition
-                  {% if quick == 'month' %}bg-blue-600 text-white shadow
-                  {% else %}bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
+           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition text-sm font-medium
+                  {% if quick == 'month' %}bg-blue-600 text-white shadow-sm
+                  {% else %}bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
           Hozirgi oy
         </a>
         <a href="?quick=6months"
-           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition
-                  {% if quick == '6months' %}bg-blue-600 text-white shadow
-                  {% else %}bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
-          Oxirgi 6 oy
+           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition text-sm font-medium
+                  {% if quick == '6months' %}bg-blue-600 text-white shadow-sm
+                  {% else %}bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
+          6 oy
         </a>
         <a href="?quick=year"
-           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition
-                  {% if quick == 'year' %}bg-blue-600 text-white shadow
-                  {% else %}bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
-          Oxirgi 1 yil
+           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition text-sm font-medium
+                  {% if quick == 'year' %}bg-blue-600 text-white shadow-sm
+                  {% else %}bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
+          1 yil
         </a>
       </div>
     </div>
   </form>
 
-  <!-- Totals -->
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5">
-    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Umumiy daromad</h2>
+  <!-- Asosiy metrikalar -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="stat-card">
+      <div class="metric-label">Jami daromad</div>
+      <div class="metric-value text-green-600 dark:text-green-400">{{ total|floatformat:0|intcomma }}</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">so'm</div>
+    </div>
+    <div class="stat-card">
+      <div class="metric-label">Buyurtmalar</div>
+      <div class="metric-value text-blue-600 dark:text-blue-400">{{ total_orders|intcomma }}</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">ta</div>
+    </div>
+    <div class="stat-card">
+      <div class="metric-label">O'rtacha buyurtma</div>
+      <div class="metric-value text-purple-600 dark:text-purple-400">{{ avg_order_value|floatformat:0|intcomma }}</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">so'm</div>
+    </div>
+    <div class="stat-card">
+      <div class="metric-label">Sotilgan mahsulot</div>
+      <div class="metric-value text-orange-600 dark:text-orange-400">{{ total_sold|intcomma }}</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">dona</div>
+    </div>
+  </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <!-- Chiziqli diagramma - Kunlik savdo -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+      <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">📈 Kunlik savdo dinamikasi</h2>
+      <div class="flex gap-2 text-xs">
+        <button onclick="switchChart('revenue')" id="btn-revenue" class="px-3 py-1.5 rounded-lg bg-blue-600 text-white font-medium transition hover:bg-blue-700">Daromad</button>
+        <button onclick="switchChart('orders')" id="btn-orders" class="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition hover:bg-gray-300 dark:hover:bg-gray-600">Buyurtmalar</button>
+        <button onclick="switchChart('quantity')" id="btn-quantity" class="px-3 py-1.5 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition hover:bg-gray-300 dark:hover:bg-gray-600">Miqdor</button>
+      </div>
+    </div>
+    <div style="position: relative; height: 350px;">
+      <canvas id="salesChart"></canvas>
+    </div>
+  </div>
+
+  <!-- To'lov usullari -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">💰 To'lov usullari bo'yicha</h2>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
       <!-- Naqd -->
       <div class="flex items-center justify-between px-4 py-3 rounded-lg
                   bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200
-                  border border-emerald-100 dark:border-emerald-800">
+                  border border-emerald-200 dark:border-emerald-800">
         <span class="inline-flex items-center gap-2 text-sm font-medium">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Naqd
+          <span class="inline-block w-3 h-3 rounded-full bg-emerald-500"></span> Naqd
         </span>
-        <span class="font-bold">{{ cash_total|floatformat:0|intcomma }} so‘m</span>
+        <span class="font-bold">{{ cash_total|floatformat:0|intcomma }}</span>
       </div>
       <!-- Karta -->
       <div class="flex items-center justify-between px-4 py-3 rounded-lg
                   bg-blue-50 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200
-                  border border-blue-100 dark:border-blue-800">
+                  border border-blue-200 dark:border-blue-800">
         <span class="inline-flex items-center gap-2 text-sm font-medium">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500"></span> Karta
+          <span class="inline-block w-3 h-3 rounded-full bg-blue-500"></span> Karta
         </span>
-        <span class="font-bold">{{ card_total|floatformat:0|intcomma }} so‘m</span>
+        <span class="font-bold">{{ card_total|floatformat:0|intcomma }}</span>
       </div>
       <!-- Perechesleniya -->
       <div class="flex items-center justify-between px-4 py-3 rounded-lg
                   bg-violet-50 text-violet-800 dark:bg-violet-900/30 dark:text-violet-200
-                  border border-violet-100 dark:border-violet-800">
+                  border border-violet-200 dark:border-violet-800">
         <span class="inline-flex items-center gap-2 text-sm font-medium">
-          <span class="inline-block w-2.5 h-2.5 rounded-full bg-violet-500"></span> Perechesleniya
+          <span class="inline-block w-3 h-3 rounded-full bg-violet-500"></span> Perechesleniya
         </span>
-        <span class="font-bold">{{ pereches_total|floatformat:0|intcomma }} so‘m</span>
+        <span class="font-bold">{{ pereches_total|floatformat:0|intcomma }}</span>
       </div>
-    </div>
-
-    <div class="mt-4 flex items-center justify-end">
-      <div class="px-4 py-2 rounded-lg bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100">
-        Jami: <span class="font-bold">{{ total|floatformat:0|intcomma }} so‘m</span>
+      <!-- Qarz -->
+      <div class="flex items-center justify-between px-4 py-3 rounded-lg
+                  bg-orange-50 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200
+                  border border-orange-200 dark:border-orange-800">
+        <span class="inline-flex items-center gap-2 text-sm font-medium">
+          <span class="inline-block w-3 h-3 rounded-full bg-orange-500"></span> Qarz
+        </span>
+        <span class="font-bold">{{ debt_total|floatformat:0|intcomma }}</span>
       </div>
     </div>
   </div>
 
-  <!-- Clients table -->
-  <div class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-100 dark:border-gray-700 p-5">
-    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Mijozlar bo‘yicha</h2>
+  <!-- Kuryerlar statistikasi -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">👥 Kuryerlar bo'yicha statistika</h2>
 
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
         <thead>
-          <tr class="bg-gray-50 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300">
-            <th class="p-3 text-left font-medium">Mijoz</th>
-            <th class="p-3 text-right font-medium">Daromad</th>
-            <th class="p-3 text-left font-medium">Kur’er</th>
+          <tr class="bg-gray-50 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+            <th class="p-3 text-left font-semibold">Kuryer</th>
+            <th class="p-3 text-right font-semibold">Daromad</th>
+            <th class="p-3 text-right font-semibold">Buyurtmalar</th>
+            <th class="p-3 text-right font-semibold">Mahsulot</th>
+            <th class="p-3 text-right font-semibold">O'rtacha</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-          {% for c in clients_summary %}
+          {% for c in courier_stats %}
             <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition">
-              <td class="p-3 text-gray-900 dark:text-gray-100">{{ c.client__name }}</td>
-              <td class="p-3 text-right text-gray-900 dark:text-gray-100">{{ c.total|floatformat:0|intcomma }} so‘m</td>
-              <td class="p-3 text-gray-900 dark:text-gray-100">
-                {{ client_couriers|get_item:c.client__id|default:"—" }}
+              <td class="p-3 text-gray-900 dark:text-gray-100 font-medium">
+                {{ c.courier__username|default:"Tayinlanmagan" }}
               </td>
+              <td class="p-3 text-right text-gray-900 dark:text-gray-100">
+                <span class="font-semibold text-green-600 dark:text-green-400">{{ c.total_revenue|floatformat:0|intcomma }}</span> so'm
+              </td>
+              <td class="p-3 text-right text-gray-900 dark:text-gray-100">{{ c.total_orders|intcomma }} ta</td>
+              <td class="p-3 text-right text-gray-900 dark:text-gray-100">{{ c.total_quantity|intcomma }} dona</td>
+              <td class="p-3 text-right text-gray-600 dark:text-gray-400 text-xs">{{ c.avg_order|floatformat:0|intcomma }} so'm</td>
             </tr>
           {% empty %}
             <tr>
-              <td colspan="3" class="p-6 text-center text-gray-500 dark:text-gray-400">Ma’lumot yo‘q</td>
+              <td colspan="5" class="p-6 text-center text-gray-500 dark:text-gray-400">Ma'lumot yo'q</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -131,5 +195,225 @@
     </div>
   </div>
 
+  <!-- Top 10 mijozlar -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">🏆 Top 10 mijozlar</h2>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      {% for c in top_clients %}
+        <div class="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 border border-gray-200 dark:border-gray-700 hover:shadow-md transition">
+          <div class="flex-1">
+            <div class="font-semibold text-gray-900 dark:text-gray-100">{{ forloop.counter }}. {{ c.client__name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {{ c.total_orders }} buyurtma · {{ c.total_quantity }} dona
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="font-bold text-green-600 dark:text-green-400">{{ c.total_revenue|floatformat:0|intcomma }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">so'm</div>
+          </div>
+        </div>
+      {% empty %}
+        <div class="col-span-2 p-6 text-center text-gray-500 dark:text-gray-400">Ma'lumot yo'q</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Barcha mijozlar (pagination bilan) -->
+  <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-5">
+    <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">👥 Barcha mijozlar</h2>
+
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="bg-gray-50 dark:bg-gray-900/60 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+            <th class="p-3 text-left font-semibold">Mijoz</th>
+            <th class="p-3 text-left font-semibold">Manzil</th>
+            <th class="p-3 text-right font-semibold">Daromad</th>
+            <th class="p-3 text-right font-semibold">Buyurtmalar</th>
+            <th class="p-3 text-right font-semibold">Mahsulot</th>
+            <th class="p-3 text-left font-semibold">Kur'er</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+          {% for c in clients_page %}
+            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/60 transition">
+              <td class="p-3 text-gray-900 dark:text-gray-100 font-medium">{{ c.client__name }}</td>
+              <td class="p-3 text-gray-600 dark:text-gray-400 text-xs">{{ c.client__caption|default:"—" }}</td>
+              <td class="p-3 text-right text-gray-900 dark:text-gray-100">
+                <span class="font-semibold">{{ c.total_revenue|floatformat:0|intcomma }}</span> so'm
+              </td>
+              <td class="p-3 text-right text-gray-900 dark:text-gray-100">{{ c.total_orders|intcomma }} ta</td>
+              <td class="p-3 text-right text-gray-900 dark:text-gray-100">{{ c.total_quantity|intcomma }} dona</td>
+              <td class="p-3 text-gray-900 dark:text-gray-100">
+                {% with client_couriers|get_item:c.client__id as courier %}
+                  {{ courier.username|default:"—" }}
+                {% endwith %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="6" class="p-6 text-center text-gray-500 dark:text-gray-400">Ma'lumot yo'q</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if clients_page.has_other_pages %}
+    <div class="mt-4 flex items-center justify-center gap-2">
+      {% if clients_page.has_previous %}
+        <a href="?{% query_transform page=1 %}" class="px-3 py-1.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm">« Birinchi</a>
+        <a href="?{% query_transform page=clients_page.previous_page_number %}" class="px-3 py-1.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm">‹ Oldingi</a>
+      {% endif %}
+
+      <span class="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300">
+        {{ clients_page.number }} / {{ clients_page.paginator.num_pages }}
+      </span>
+
+      {% if clients_page.has_next %}
+        <a href="?{% query_transform page=clients_page.next_page_number %}" class="px-3 py-1.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm">Keyingi ›</a>
+        <a href="?{% query_transform page=clients_page.paginator.num_pages %}" class="px-3 py-1.5 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-sm">Oxirgi »</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
 </div>
+
+<script>
+// Ma'lumotlarni olish
+const chartLabels = {{ chart_labels|safe }};
+const chartRevenue = {{ chart_revenue|safe }};
+const chartOrders = {{ chart_orders|safe }};
+const chartQuantity = {{ chart_quantity|safe }};
+
+// Dark mode aniqlash
+const isDarkMode = document.documentElement.classList.contains('dark');
+const textColor = isDarkMode ? '#E5E7EB' : '#374151';
+const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+// Diagramma konfiguratsiyasi
+let currentChart = null;
+let currentMode = 'revenue';
+
+const chartConfig = {
+  revenue: {
+    label: 'Daromad (so\'m)',
+    data: chartRevenue,
+    borderColor: '#10b981',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  orders: {
+    label: 'Buyurtmalar soni',
+    data: chartOrders,
+    borderColor: '#3b82f6',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  quantity: {
+    label: 'Mahsulot miqdori (dona)',
+    data: chartQuantity,
+    borderColor: '#f97316',
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+  }
+};
+
+function createChart(mode) {
+  const config = chartConfig[mode];
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  
+  if (currentChart) {
+    currentChart.destroy();
+  }
+
+  currentChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: config.label,
+        data: config.data,
+        borderColor: config.borderColor,
+        backgroundColor: config.backgroundColor,
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            color: textColor,
+            font: { size: 12 }
+          }
+        },
+        tooltip: {
+          mode: 'index',
+          intersect: false,
+          backgroundColor: isDarkMode ? 'rgba(31, 41, 55, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          titleColor: textColor,
+          bodyColor: textColor,
+          borderColor: gridColor,
+          borderWidth: 1,
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: textColor,
+            callback: function(value) {
+              if (mode === 'revenue') {
+                return value.toLocaleString() + ' so\'m';
+              }
+              return value.toLocaleString();
+            }
+          },
+          grid: {
+            color: gridColor
+          }
+        },
+        x: {
+          ticks: {
+            color: textColor,
+            maxRotation: 45,
+            minRotation: 0
+          },
+          grid: {
+            color: gridColor
+          }
+        }
+      }
+    }
+  });
+}
+
+function switchChart(mode) {
+  currentMode = mode;
+  createChart(mode);
+  
+  // Tugmalarni yangilash
+  document.querySelectorAll('[id^="btn-"]').forEach(btn => {
+    btn.classList.remove('bg-blue-600', 'text-white');
+    btn.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+  });
+  
+  const activeBtn = document.getElementById('btn-' + mode);
+  activeBtn.classList.add('bg-blue-600', 'text-white');
+  activeBtn.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-700', 'dark:text-gray-300');
+}
+
+// Sahifa yuklanganda diagrammani yaratish
+document.addEventListener('DOMContentLoaded', function() {
+  createChart('revenue');
+});
+</script>
+
 {% endblock %}

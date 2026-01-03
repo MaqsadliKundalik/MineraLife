@@ -39,6 +39,13 @@ class Order(models.Model):
         ordering = ['-created_at']
         verbose_name = "Buyurtma"
         verbose_name_plural = "Buyurtmalar"
+        indexes = [
+            models.Index(fields=['effective_date', 'status'], name='order_date_status_idx'),
+            models.Index(fields=['client', 'effective_date'], name='order_client_date_idx'),
+            models.Index(fields=['courier', 'effective_date'], name='order_courier_date_idx'),
+            models.Index(fields=['status', 'payment_method'], name='order_status_payment_idx'),
+            models.Index(fields=['-created_at'], name='order_created_idx'),
+        ]
     
     def __str__(self):
         return f"#{self.id} - {self.client.name} ({self.get_status_display()})"
