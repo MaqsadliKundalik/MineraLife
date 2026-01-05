@@ -124,7 +124,19 @@
       </button>
 
       <!-- Quick buttons -->
-      <div class="flex gap-2 sm:ml-auto w-full sm:w-auto flex-wrap sm:flex-nowrap">
+      <div class="flex gap-2 sm:ml-auto w-full sm:w-auto flex-wrap">
+        <a href="?quick=today"
+           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition text-sm font-medium
+                  {% if quick == 'today' %}bg-blue-600 text-white shadow-sm
+                  {% else %}bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
+          Bugun
+        </a>
+        <a href="?quick=week"
+           class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition text-sm font-medium
+                  {% if quick == 'week' %}bg-blue-600 text-white shadow-sm
+                  {% else %}bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600{% endif %}">
+          Hozirgi hafta
+        </a>
         <a href="?quick=month"
            class="flex-1 sm:flex-none text-center px-3 py-2 rounded-lg transition text-sm font-medium
                   {% if quick == 'month' %}bg-blue-600 text-white shadow-sm

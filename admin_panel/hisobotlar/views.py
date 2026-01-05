@@ -23,7 +23,14 @@ def reports_view(request):
     quick = request.GET.get("quick", "month")  # default = hozirgi oy
     page_num = request.GET.get("page", 1)
 
-    if quick == "month":
+    if quick == "today":
+        start_date = today
+        end_date = today
+    elif quick == "week":
+        # Haftaning boshidan (dushanba) bugungi kungacha
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif quick == "month":
         start_date = today.replace(day=1)
         end_date = today
     elif quick == "6months":
@@ -176,7 +183,14 @@ def export_excel(request):
     end = request.GET.get("end")
     quick = request.GET.get("quick", "month")
 
-    if quick == "month":
+    if quick == "today":
+        start_date = today
+        end_date = today
+    elif quick == "week":
+        # Haftaning boshidan (dushanba) bugungi kungacha
+        start_date = today - timedelta(days=today.weekday())
+        end_date = today
+    elif quick == "month":
         start_date = today.replace(day=1)
         end_date = today
     elif quick == "6months":
