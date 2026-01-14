@@ -46,18 +46,13 @@ class ClientCreateView(SuperuserRequiredMixin, CreateView):
         
         with transaction.atomic():
             if phone_formset.is_valid():
-                # Kamida bitta telefon raqam bo'lishi kerak
-                valid_phones = [f for f in phone_formset.forms if f.cleaned_data and not f.cleaned_data.get('DELETE')]
-                if not valid_phones:
-                    messages.error(self.request, "Kamida bitta telefon raqam kiritish shart!")
-                    return self.render_to_response(self.get_context_data(form=form))
-                
                 self.object = form.save()
                 phone_formset.instance = self.object
                 phone_formset.save()
                 messages.success(self.request, "Mijoz muvaffaqiyatli qo'shildi.")
                 return super().form_valid(form)
             else:
+                messages.error(self.request, "Telefon raqamlarda xatolik bor. Iltimos tekshiring.")
                 return self.render_to_response(self.get_context_data(form=form))
 
     def form_invalid(self, form):
@@ -98,18 +93,13 @@ class ClientUpdateView(SuperuserRequiredMixin, UpdateView):
         
         with transaction.atomic():
             if phone_formset.is_valid():
-                # Kamida bitta telefon raqam bo'lishi kerak
-                valid_phones = [f for f in phone_formset.forms if f.cleaned_data and not f.cleaned_data.get('DELETE')]
-                if not valid_phones:
-                    messages.error(self.request, "Kamida bitta telefon raqam kiritish shart!")
-                    return self.render_to_response(self.get_context_data(form=form))
-                
                 self.object = form.save()
                 phone_formset.instance = self.object
                 phone_formset.save()
                 messages.success(self.request, "Mijoz ma'lumotlari yangilandi.")
                 return super().form_valid(form)
             else:
+                messages.error(self.request, "Telefon raqamlarda xatolik bor. Iltimos tekshiring.")
                 return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):

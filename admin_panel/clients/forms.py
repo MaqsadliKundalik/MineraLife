@@ -40,8 +40,8 @@ ClientPhoneNumberFormSet = inlineformset_factory(
     form=ClientPhoneNumberForm,
     extra=1,  # 1 ta bo'sh form ko'rsatish
     can_delete=True,  # O'chirish imkoniyati
-    min_num=0,  # Minimal 0 ta raqam - telefon shart emas
-    validate_min=False,  # Min validation o'chirish
+    min_num=1,  # Minimal 1 ta raqam kerak
+    validate_min=True,  # Min validation yoqish
     max_num=10,  # Maksimal 10 ta raqam
 )
 

@@ -50,22 +50,37 @@
     <!-- Telefon raqamlar -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Telefon raqamlar</label>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-200">Telefon raqamlar <span class="text-red-500">*</span></label>
         <button type="button" id="add-phone" class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition">
           + Telefon qo'shish
         </button>
       </div>
       
+      {% if phone_formset.non_form_errors %}
+        <div class="px-4 py-3 rounded-lg bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800">
+          {{ phone_formset.non_form_errors }}
+        </div>
+      {% endif %}
+      
       <div id="phone-forms">
         {{ phone_formset.management_form }}
         {% for form in phone_formset %}
-          <div class="phone-form flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <div class="phone-form flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-form-index="{{ forloop.counter0 }}">
             {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
             <div class="flex-1">
               {{ form.phone_number }}
               {% if form.phone_number.errors %}
                 <p class="mt-1 text-sm text-red-600">{{ form.phone_number.errors.0 }}</p>
               {% endif %}
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center text-xs text-gray-600 dark:text-gray-400">
+                {{ form.description }}
+              </label>
+              <label class="flex items-center gap-1">
+                {{ form.is_primary }}
+                <span class="text-xs text-gray-600 dark:text-gray-400">Asosiy</span>
+              </label>
             </div>
             <button type="button" class="remove-phone text-red-600 hover:text-red-800 px-2 py-1">
               ✕
@@ -269,14 +284,28 @@
     const phoneFormsDiv = document.getElementById('phone-forms');
     const newForm = document.createElement('div');
     newForm.classList.add('phone-form', 'flex', 'items-center', 'gap-2', 'p-3', 'bg-gray-50', 'dark:bg-gray-700', 'rounded-lg');
+    newForm.setAttribute('data-form-index', formNum);
     
     newForm.innerHTML = `
-      <input type="hidden" name="clientphonenumber_set-${formNum}-id" id="id_clientphonenumber_set-${formNum}-id">
+      <input type="hidden" name="clientphonenumber_set-${formNum}-id" id="id_clientphonenumber_set-${formNum}-id" value="">
+      <input type="hidden" name="clientphonenumber_set-${formNum}-DELETE" id="id_clientphonenumber_set-${formNum}-DELETE" value="">
       <div class="flex-1">
         <input type="text" name="clientphonenumber_set-${formNum}-phone_number" 
                id="id_clientphonenumber_set-${formNum}-phone_number"
                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 px-4 py-2 outline-none focus:ring-2 focus:ring-blue-500"
                placeholder="+998 90 123 45 67">
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="text" name="clientphonenumber_set-${formNum}-description"
+               id="id_clientphonenumber_set-${formNum}-description"
+               class="w-32 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 px-2 py-1"
+               placeholder="Izoh">
+        <label class="flex items-center gap-1">
+          <input type="checkbox" name="clientphonenumber_set-${formNum}-is_primary"
+                 id="id_clientphonenumber_set-${formNum}-is_primary"
+                 class="h-4 w-4 rounded">
+          <span class="text-xs text-gray-600 dark:text-gray-400">Asosiy</span>
+        </label>
       </div>
       <button type="button" class="remove-phone text-red-600 hover:text-red-800 px-2 py-1">
         ✕
@@ -289,25 +318,47 @@
   }
 
   function removePhoneForm(button) {
-    const form = button.closest('.phone-form');
-    form.remove();
+    const phoneForm = button.closest('.phone-form');
     
-    // Update form indices
-    const forms = document.querySelectorAll('.phone-form');
-    forms.forEach((form, index) => {
-      const inputs = form.querySelectorAll('input');
-      inputs.forEach(input => {
-        const name = input.getAttribute('name');
-        if (name && name.includes('clientphonenumber_set-')) {
-          const newName = name.replace(/clientphonenumber_set-\d+-/, `clientphonenumber_set-${index}-`);
-          input.setAttribute('name', newName);
-          input.setAttribute('id', `id_${newName}`);
-        }
+    // Check if this is an existing record (has an ID)
+    const idInput = phoneForm.querySelector('input[name$="-id"]');
+    const deleteInput = phoneForm.querySelector('input[name$="-DELETE"]');
+    
+    if (idInput && idInput.value) {
+      // Mark for deletion instead of removing from DOM
+      if (deleteInput) {
+        deleteInput.value = 'on';
+      }
+      phoneForm.style.display = 'none';
+    } else {
+      // New form without ID - just remove from DOM
+      phoneForm.remove();
+      
+      // Re-index remaining forms
+      const forms = document.querySelectorAll('.phone-form:not([style*="display: none"])');
+      forms.forEach((form, index) => {
+        form.setAttribute('data-form-index', index);
+        const inputs = form.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+          const name = input.getAttribute('name');
+          const id = input.getAttribute('id');
+          if (name && name.includes('clientphonenumber_set-')) {
+            const newName = name.replace(/clientphonenumber_set-\d+-/, `clientphonenumber_set-${index}-`);
+            input.setAttribute('name', newName);
+            if (id) {
+              const newId = id.replace(/id_clientphonenumber_set-\d+-/, `id_clientphonenumber_set-${index}-`);
+              input.setAttribute('id', newId);
+            }
+          }
+        });
       });
-    });
-    
-    formNum = forms.length;
-    if (totalFormsInput) totalFormsInput.value = formNum;
+      
+      // Update total forms count
+      formNum = forms.length;
+      if (totalFormsInput) {
+        totalFormsInput.value = formNum;
+      }
+    }
   }
 
   // Event listeners
