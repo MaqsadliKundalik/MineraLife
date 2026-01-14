@@ -5,7 +5,7 @@ from .models import Client, ClientPhoneNumber
 class ClientPhoneNumberInline(admin.TabularInline):
     model = ClientPhoneNumber
     extra = 1
-    fields = ('phone_number', 'description', 'is_primary')
+    fields = ('phone_number', 'is_primary')
 
 
 @admin.register(Client)
@@ -24,6 +24,6 @@ class ClientAdmin(admin.ModelAdmin):
 
 @admin.register(ClientPhoneNumber)
 class ClientPhoneNumberAdmin(admin.ModelAdmin):
-    list_display = ("phone_number", "client", "description", "is_primary", "created_at")
+    list_display = ("phone_number", "client", "is_primary", "created_at")
     list_filter = ("is_primary", "created_at")
-    search_fields = ("phone_number", "description", "client__name")
+    search_fields = ("phone_number", "client__name")

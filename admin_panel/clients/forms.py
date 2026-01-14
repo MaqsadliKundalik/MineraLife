@@ -19,17 +19,15 @@ class ClientPhoneNumberForm(forms.ModelForm):
     
     class Meta:
         model = ClientPhoneNumber
-        fields = ['phone_number', 'description', 'is_primary']
+        fields = ['phone_number', 'is_primary']
         widgets = {
             'phone_number': forms.TextInput(attrs=_attrs(placeholder="+998901234567")),
-            'description': forms.TextInput(attrs=_attrs(placeholder="Kimning raqami?")),
             'is_primary': forms.CheckboxInput(attrs={'class': 'h-4 w-4 rounded'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['phone_number'].label = "Telefon raqam"
-        self.fields['description'].label = "Izoh"
         self.fields['is_primary'].label = "Asosiy raqam"
 
 

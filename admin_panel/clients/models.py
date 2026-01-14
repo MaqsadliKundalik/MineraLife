@@ -16,12 +16,6 @@ class ClientPhoneNumber(models.Model):
         ],
         help_text="Mijoz telefon raqami"
     )
-    description = models.CharField(
-        max_length=100, 
-        blank=True, 
-        null=True,
-        help_text="Kimning raqami (masalan: ota, ona, qo'shni)"
-    )
     is_primary = models.BooleanField(default=False, help_text="Asosiy telefon raqammi?")
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -32,8 +26,7 @@ class ClientPhoneNumber(models.Model):
     
     def __str__(self):
         primary_text = " (Asosiy)" if self.is_primary else ""
-        desc_text = f" - {self.description}" if self.description else ""
-        return f"{self.phone_number}{primary_text}{desc_text}"
+        return f"{self.phone_number}{primary_text}"
     
     def save(self, *args, **kwargs):
         # Agar bu telefon asosiy qilib belgilansa, boshqalarini asosiy emas qilish
@@ -73,8 +66,6 @@ class Client(models.Model):
             text = phone.phone_number
             if phone.is_primary:
                 text += " (Asosiy)"
-            if phone.description:
-                text += f" - {phone.description}"
             result.append(text)
         
         return " | ".join(result)
