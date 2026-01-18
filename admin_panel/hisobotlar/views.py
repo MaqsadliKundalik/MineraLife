@@ -20,7 +20,7 @@ def reports_view(request):
     today = now().date()
     start = request.GET.get("start")
     end = request.GET.get("end")
-    quick = request.GET.get("quick", "month")  # default = hozirgi oy
+    quick = request.GET.get("quick")  # default = None
     page_num = request.GET.get("page", 1)
 
     if quick == "today":
@@ -39,13 +39,19 @@ def reports_view(request):
     elif quick == "year":
         start_date = today - timedelta(days=365)
         end_date = today
-    else:
+    elif start and end:
         try:
             start_date = date.fromisoformat(start)
             end_date = date.fromisoformat(end)
-        except Exception:
+        except (ValueError, TypeError):
+            # Fallback agar sanalar noto'g'ri bo'lsa
             start_date = today.replace(day=1)
             end_date = today
+    else:
+        # Default = joriy oy
+        quick = "month"
+        start_date = today.replace(day=1)
+        end_date = today
 
     # Asosiy queryset - select_related bilan optimizatsiya
     qs = Order.objects.filter(
@@ -181,7 +187,7 @@ def export_excel(request):
     today = now().date()
     start = request.GET.get("start")
     end = request.GET.get("end")
-    quick = request.GET.get("quick", "month")
+    quick = request.GET.get("quick")
 
     if quick == "today":
         start_date = today
@@ -199,13 +205,17 @@ def export_excel(request):
     elif quick == "year":
         start_date = today - timedelta(days=365)
         end_date = today
-    else:
+    elif start and end:
         try:
             start_date = date.fromisoformat(start)
             end_date = date.fromisoformat(end)
-        except Exception:
+        except (ValueError, TypeError):
             start_date = today.replace(day=1)
             end_date = today
+    else:
+        quick = "month"
+        start_date = today.replace(day=1)
+        end_date = today
 
     # Asosiy queryset
     qs = Order.objects.filter(

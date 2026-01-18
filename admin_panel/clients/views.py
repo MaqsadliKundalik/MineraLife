@@ -12,8 +12,9 @@ from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.conf import settings
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.utils import timezone
+from django.core.paginator import Paginator
 import json
 
 class ClientListView(SuperuserRequiredMixin, ListView):
@@ -24,7 +25,19 @@ class ClientListView(SuperuserRequiredMixin, ListView):
     ordering = '-created_at'  # xohlasangiz
     
     def get_queryset(self):
-        return Client.objects.prefetch_related('phone_numbers').order_by(self.ordering)
+        queryset = Client.objects.prefetch_related('phone_numbers').order_by(self.ordering)
+        q = self.request.GET.get('q', '').strip()
+        if q:
+            queryset = queryset.filter(
+                Q(name__icontains=q) | 
+                Q(phone_numbers__phone_number__icontains=q)
+            ).distinct()
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['q'] = self.request.GET.get('q', '')
+        return context
 
 class ClientCreateView(SuperuserRequiredMixin, CreateView):
     model = Client
