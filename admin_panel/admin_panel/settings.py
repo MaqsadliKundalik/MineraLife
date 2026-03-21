@@ -112,16 +112,8 @@ WSGI_APPLICATION = 'admin_panel.wsgi.application'
 #     # Production MySQL configuration (PythonAnywhere)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.environ.get('MYSQL_DBNAME', 'mineralife$default'),
-        'USER': os.environ.get('MYSQL_USER', 'mineralife'),
-        'PASSWORD': os.environ.get('MYSQL_PASSWORD', 'wwwMiner123'),
-        'HOST': os.environ.get('MYSQL_HOST', 'mineralife.mysql.pythonanywhere-services.com'),
-        'PORT': os.environ.get('MYSQL_PORT', '3306'),
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 # else:
