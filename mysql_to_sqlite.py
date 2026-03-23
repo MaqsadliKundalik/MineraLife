@@ -1,227 +1,258 @@
-"""
-MySQL dump faylni SQLite db.sqlite3 ga import qiluvchi script.
-Ishlatish: python mysql_to_sqlite.py
-"""
-
 import re
 import sqlite3
 import os
-import sys
 
-if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+INPUT_SQL = "zahira_nusxa (1).sql"
+OUTPUT_DB = "zahira.db"
 
-SQL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "zahira_nusxa (1).sql")
-DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "db.sqlite3")
+def convert_mysql_to_sqlite(sql):
+    lines = sql.splitlines()
+    result = []
+
+    for line in lines:
+        # MySQL maxsus kommentlarni o'chirish /*!...*/
+        line = re.sub(r'/\*![^*]*\*/', '', line)
+        line = re.sub(r'/\*!.*?\*/', '', line)
+
+        # Bo'sh komment qoldiqlari
+        if line.strip() in ('', ';'):
+            continue
+
+        # MySQL-only statements
+        skip_patterns = [
+            r'^\s*LOCK TABLES',
+            r'^\s*UNLOCK TABLES',
+            r'^\s*SET @',
+            r'^\s*SET NAMES',
+            r'^\s*SET TIME_ZONE',
+        ]
+        if any(re.match(p, line, re.IGNORECASE) for p in skip_patterns):
+            continue
+
+        result.append(line)
+
+    sql_out = '\n'.join(result)
+
+    # ENGINE=... DEFAULT CHARSET=... ni o'chirish
+    sql_out = re.sub(
+        r'\)\s*ENGINE\s*=\s*\w+[^;]*;',
+        ');',
+        sql_out,
+        flags=re.IGNORECASE
+    )
+
+    # AUTO_INCREMENT column definition ichida
+    sql_out = re.sub(r'\bAUTO_INCREMENT\b', '', sql_out, flags=re.IGNORECASE)
+    sql_out = re.sub(r'\bAUTO_INCREMENT\s*=\s*\d+', '', sql_out, flags=re.IGNORECASE)
+
+    # DEFAULT CHARSET / COLLATE column darajasida
+    sql_out = re.sub(r'\bCHARACTER SET\s+\w+', '', sql_out, flags=re.IGNORECASE)
+    sql_out = re.sub(r'\bCOLLATE\s+\w+', '', sql_out, flags=re.IGNORECASE)
+    sql_out = re.sub(r'\bDEFAULT CHARSET\s*=\s*\w+', '', sql_out, flags=re.IGNORECASE)
+
+    # tinyint(1) → INTEGER
+    sql_out = re.sub(r'\btinyint\(\d+\)', 'INTEGER', sql_out, flags=re.IGNORECASE)
+
+    # bigint(N) / int(N) → INTEGER
+    sql_out = re.sub(r'\bbigint\b', 'INTEGER', sql_out, flags=re.IGNORECASE)
+    sql_out = re.sub(r'\bint\(\d+\)', 'INTEGER', sql_out, flags=re.IGNORECASE)
+
+    # datetime(6) → TEXT
+    sql_out = re.sub(r'\bdatetime\(\d+\)', 'TEXT', sql_out, flags=re.IGNORECASE)
+    sql_out = re.sub(r'\bdatetime\b', 'TEXT', sql_out, flags=re.IGNORECASE)
+
+    # CREATE TABLE ichidagi KEY/UNIQUE KEY larni to'g'rilash
+    sql_out = convert_create_tables(sql_out)
+
+    # MySQL backslash escape (\') → SQLite double quote escape ('')
+    sql_out = convert_string_escapes(sql_out)
+
+    return sql_out
 
 
-# ─── Yordamchi: satrlarga bo'lib, statementlarni ajratish ────────────────────
+def convert_string_escapes(sql):
+    """MySQL string ichidagi \' ni '' ga o'zgartirish (SQLite uchun)"""
+    result = []
+    i = 0
+    while i < len(sql):
+        c = sql[i]
+        if c == "'":
+            result.append(c)
+            i += 1
+            # String ichiga kirdik
+            while i < len(sql):
+                c2 = sql[i]
+                if c2 == '\\' and i + 1 < len(sql) and sql[i+1] == "'":
+                    # \' → ''
+                    result.append("''")
+                    i += 2
+                elif c2 == '\\' and i + 1 < len(sql):
+                    # boshqa escape (\n, \t va h.k.) — qoldirish
+                    result.append(c2)
+                    result.append(sql[i+1])
+                    i += 2
+                elif c2 == "'":
+                    result.append(c2)
+                    i += 1
+                    break
+                else:
+                    result.append(c2)
+                    i += 1
+        else:
+            result.append(c)
+            i += 1
+    return ''.join(result)
 
-def split_statements(sql: str) -> list[str]:
-    """Semicolonni string ichida ham to'g'ri hisoblab, statementlarni ajratadi."""
+
+def convert_create_tables(sql):
+    def fix_table(match):
+        create_part = match.group(1)
+        body = match.group(2)
+        close = match.group(3)
+
+        lines = body.split('\n')
+        new_lines = []
+        for line in lines:
+            # UNIQUE KEY `keyname` (col1, col2) → UNIQUE (col1, col2)
+            m = re.match(r'(\s*)UNIQUE KEY\s+`\w+`\s*(\([^)]+\))(,?)', line, re.IGNORECASE)
+            if m:
+                new_lines.append(f'{m.group(1)}UNIQUE {m.group(2)}{m.group(3)}')
+                continue
+
+            # KEY `keyname` (col) — oddiy index, o'chiramiz
+            if re.match(r'\s*KEY\s+`', line, re.IGNORECASE):
+                # Oldingi qatordan trailing comma olib tashlash kerak bo'lishi mumkin
+                # Keyinroq fix_trailing_commas hal qiladi
+                continue
+
+            new_lines.append(line)
+
+        cleaned = fix_trailing_commas(new_lines)
+        return create_part + '\n'.join(cleaned) + close
+
+    pattern = re.compile(
+        r'(CREATE TABLE[^(]+\()\n(.*?)\n(\s*\)\s*;)',
+        re.DOTALL | re.IGNORECASE
+    )
+    return pattern.sub(fix_table, sql)
+
+
+def fix_trailing_commas(lines):
+    non_empty = [(i, l) for i, l in enumerate(lines) if l.strip()]
+    if not non_empty:
+        return lines
+
+    last_idx = non_empty[-1][0]
+    last_line = lines[last_idx]
+
+    if last_line.rstrip().endswith(','):
+        lines[last_idx] = last_line.rstrip()[:-1]
+
+    return lines
+
+
+def split_sql_statements(sql):
     statements = []
     current = []
     in_string = False
     string_char = None
     i = 0
+
     while i < len(sql):
         c = sql[i]
+
         if in_string:
             current.append(c)
-            if c == "\\" :
-                # escape
+            if c == '\\':
                 i += 1
                 if i < len(sql):
                     current.append(sql[i])
             elif c == string_char:
                 in_string = False
         else:
-            if c in ("'", '"'):
+            if c in ("'", '"', '`'):
                 in_string = True
                 string_char = c
                 current.append(c)
-            elif c == ";":
-                stmt = "".join(current).strip()
+            elif c == '-' and i + 1 < len(sql) and sql[i+1] == '-':
+                while i < len(sql) and sql[i] != '\n':
+                    i += 1
+                continue
+            elif c == ';':
+                stmt = ''.join(current).strip()
                 if stmt:
                     statements.append(stmt)
                 current = []
             else:
                 current.append(c)
         i += 1
-    last = "".join(current).strip()
-    if last:
-        statements.append(last)
+
+    stmt = ''.join(current).strip()
+    if stmt:
+        statements.append(stmt)
+
     return statements
 
 
-# ─── CREATE TABLE konvertatsiyasi ────────────────────────────────────────────
+def run():
+    print(f"O'qilmoqda: {INPUT_SQL}")
+    with open(INPUT_SQL, 'r', encoding='utf-8') as f:
+        mysql_sql = f.read()
 
-def convert_create_table(stmt: str) -> str:
-    # Backtick olib tashlash
-    stmt = stmt.replace("`", "")
+    print("Konvertatsiya qilinmoqda...")
+    sqlite_sql = convert_mysql_to_sqlite(mysql_sql)
 
-    # Jadval nomini olish
-    m = re.match(r"CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\S+)\s*\(", stmt, re.IGNORECASE)
-    if not m:
-        return stmt
+    with open('converted.sql', 'w', encoding='utf-8') as f:
+        f.write(sqlite_sql)
+    print("Converted SQL saqlandi: converted.sql")
 
-    # '(' dan ')' gacha bo'lgan kolonlar blokirovkasini ajratish
-    paren_start = stmt.index("(")
-    # Oxirgi ')' — jadval yopuvchi qavs
-    paren_end = stmt.rindex(")")
-    header = stmt[:paren_start + 1]
-    columns_block = stmt[paren_start + 1:paren_end]
-    # Jadval parametrlari (ENGINE, CHARSET, ...) — kerak emas
-    # footer = stmt[paren_end:]
+    if os.path.exists(OUTPUT_DB):
+        os.remove(OUTPUT_DB)
+        print(f"Eski {OUTPUT_DB} o'chirildi")
 
-    # Har bir kolonnni alohida parse qilish
-    # Vergul bo'yicha split — lekin qavs ichidagi vergulga e'tibor bermaslik
-    col_defs = []
-    depth = 0
-    current = []
-    for ch in columns_block:
-        if ch == "(":
-            depth += 1
-            current.append(ch)
-        elif ch == ")":
-            depth -= 1
-            current.append(ch)
-        elif ch == "," and depth == 0:
-            col_defs.append("".join(current).strip())
-            current = []
-        else:
-            current.append(ch)
-    if "".join(current).strip():
-        col_defs.append("".join(current).strip())
+    print(f"SQLite DB yaratilmoqda: {OUTPUT_DB}")
+    conn = sqlite3.connect(OUTPUT_DB)
+    cursor = conn.cursor()
 
-    new_cols = []
-    for col in col_defs:
-        col_stripped = col.strip()
+    cursor.execute("PRAGMA foreign_keys = OFF;")
 
-        # Tashlab yuborilishi kerak bo'lgan satrlar
-        if re.match(r"KEY\s+", col_stripped, re.IGNORECASE):
-            continue
-        if re.match(r"CONSTRAINT\s+", col_stripped, re.IGNORECASE):
-            continue
+    statements = split_sql_statements(sqlite_sql)
+    errors = []
+    success = 0
 
-        # UNIQUE KEY name (cols) -> UNIQUE (cols)
-        m_uq = re.match(r"UNIQUE\s+KEY\s+\w+\s*(\([^)]+\))", col_stripped, re.IGNORECASE)
-        if m_uq:
-            new_cols.append(f"UNIQUE {m_uq.group(1)}")
-            continue
-
-        # AUTO_INCREMENT -> AUTOINCREMENT
-        col_stripped = re.sub(r"\bAUTO_INCREMENT\b", "AUTOINCREMENT", col_stripped, flags=re.IGNORECASE)
-
-        # int/bigint NOT NULL AUTOINCREMENT -> INTEGER NOT NULL
-        # (SQLite da AUTOINCREMENT faqat `INTEGER PRIMARY KEY AUTOINCREMENT` shaklida)
-        col_stripped = re.sub(
-            r"\b(int|bigint)\b",
-            "INTEGER",
-            col_stripped,
-            flags=re.IGNORECASE,
-        )
-
-        # Ortiqcha MySQL type modifikatorlarini olib tashlash
-        col_stripped = re.sub(r"\bUNSIGNED\b", "", col_stripped, flags=re.IGNORECASE)
-        col_stripped = re.sub(r"\bZEROFILL\b", "", col_stripped, flags=re.IGNORECASE)
-        col_stripped = re.sub(r"\bCHARACTER\s+SET\s+\w+\b", "", col_stripped, flags=re.IGNORECASE)
-        col_stripped = re.sub(r"\bCOLLATE\s+\w+\b", "", col_stripped, flags=re.IGNORECASE)
-        col_stripped = re.sub(r"\bCOMMENT\s+'[^']*'", "", col_stripped, flags=re.IGNORECASE)
-        col_stripped = col_stripped.strip()
-
-        new_cols.append(col_stripped)
-
-    result = header + "\n  " + ",\n  ".join(new_cols) + "\n)"
-    return result
-
-
-# ─── Asosiy konvertatsiya ────────────────────────────────────────────────────
-
-def preprocess(raw: str) -> str:
-    # MySQL direktivalarini olib tashlash
-    raw = re.sub(r"/\*!.*?\*/", "", raw, flags=re.DOTALL)
-    raw = re.sub(r"/\*.*?\*/", "", raw, flags=re.DOTALL)
-    # -- izohlar
-    raw = re.sub(r"--[^\n]*", "", raw)
-    # LOCK / UNLOCK TABLES
-    raw = re.sub(r"LOCK\s+TABLES\s+[^;]+;", "", raw, flags=re.IGNORECASE)
-    raw = re.sub(r"UNLOCK\s+TABLES\s*;", "", raw, flags=re.IGNORECASE)
-    # SET statements
-    raw = re.sub(r"SET\s+[^;]+;", "", raw, flags=re.IGNORECASE)
-    return raw
-
-
-def convert(raw: str) -> list[str]:
-    raw = preprocess(raw)
-    stmts = split_statements(raw)
-
-    result = []
-    for stmt in stmts:
+    for i, stmt in enumerate(statements):
         stmt = stmt.strip()
         if not stmt:
             continue
-
-        upper = stmt.upper().lstrip()
-
-        if upper.startswith("CREATE TABLE"):
-            stmt = convert_create_table(stmt)
-        elif upper.startswith("INSERT") or upper.startswith("DROP") or upper.startswith("DELETE"):
-            stmt = stmt.replace("`", "")
-        else:
-            # Boshqa statementlarni o'tkazib yuboramiz
-            continue
-
-        result.append(stmt)
-    return result
-
-
-# ─── Main ────────────────────────────────────────────────────────────────────
-
-def main():
-    if not os.path.exists(SQL_FILE):
-        print(f"SQL fayl topilmadi: {SQL_FILE}")
-        sys.exit(1)
-
-    print(f"O'qilmoqda: {SQL_FILE}")
-    with open(SQL_FILE, "r", encoding="utf-8", errors="replace") as f:
-        raw_sql = f.read()
-
-    print("Konvertatsiya qilinmoqda...")
-    statements = convert(raw_sql)
-    print(f"Jami {len(statements)} ta statement topildi.")
-
-    if os.path.exists(DB_FILE):
-        backup = DB_FILE + ".bak"
-        import shutil
-        shutil.copy2(DB_FILE, backup)
-        print(f"Eski baza zahiralandi: {backup}")
-
-    print(f"SQLite bazaga yozilmoqda: {DB_FILE}")
-    conn = sqlite3.connect(DB_FILE)
-    conn.execute("PRAGMA foreign_keys = OFF;")
-    conn.execute("PRAGMA journal_mode = WAL;")
-
-    errors = []
-    success = 0
-    for stmt in statements:
         try:
-            conn.execute(stmt)
+            cursor.execute(stmt)
             success += 1
         except Exception as e:
-            errors.append((stmt[:150], str(e)))
+            errors.append((i, stmt[:120], str(e)))
 
     conn.commit()
+    cursor.execute("PRAGMA foreign_keys = ON;")
+
+    # Jadvallar ro'yxati
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+    tables = cursor.fetchall()
+
     conn.close()
 
-    print(f"\nMuvaffaqiyatli: {success} ta statement")
+    print(f"\nNatija: {success} statement muvaffaqiyatli bajarildi")
     if errors:
-        print(f"Xatoliklar: {len(errors)} ta")
-        for stmt_preview, err in errors[:30]:
-            print(f"  [{err}]\n  {stmt_preview!r}\n")
+        print(f"\n{len(errors)} ta xato:")
+        for i, stmt, err in errors[:15]:
+            print(f"  [{i}] {stmt!r}... => {err}")
     else:
-        print("Hammasi muvaffaqiyatli bajarildi!")
+        print("Xatolar yo'q!")
+
+    print(f"\nJadvallar ({len(tables)} ta):")
+    for t in tables:
+        print(f"  - {t[0]}")
+
+    print(f"\nDB fayl tayyor: {OUTPUT_DB}")
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    run()
